@@ -6,12 +6,13 @@ import 'package:timezone/data/latest.dart' as tz;
 import 'Pages/AuthPage.dart';
 import 'Pages/HomePage.dart';
 import 'firebase_options.dart';
+import 'notification_files/push_notifications.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
 Future _firebaseBackgroundMessage(RemoteMessage message) async {
   if (message.notification != null) {
-    print('Notification Received Successfuly');
+    print('Notification Received Successfully');
   }
 }
 
@@ -39,7 +40,7 @@ Future<void> main() async {
     }
   });
 
-  // PushNotifications.init();
+  PushNotifications.init();
 
   FirebaseMessaging.onBackgroundMessage(_firebaseBackgroundMessage);
   tz.initializeTimeZones();
@@ -62,7 +63,7 @@ class _MyAppState extends State<MyApp> {
       routes: {
         '/': (_) => const AuthPage(),
         '/home': (_) => const HomePage(),
-        // '/views': (_) => const ViewsPage(),
+        '/pnotification': (_) => const NotificationPage(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/') {

@@ -42,7 +42,15 @@ class _HomePageState extends State<HomePage> {
                 onPressed: () {
                   Navigator.pushNamed(context, '/');
                 },
-                child: const Text('Log Out'))
+                child: const Text('Log Out')),
+            const SizedBox(
+              height: 10,
+            ),
+            ElevatedButton(
+                onPressed: () {
+                  Navigator.pushNamed(context, '/pnotification');
+                },
+                child: const Text('Push notification page '))
           ],
         ),
       ),
