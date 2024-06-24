@@ -6,7 +6,7 @@ class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Hello 2')),
+      appBar: AppBar(title: const Text('Hello 2')),
     );
   }
 }

@@ -6,7 +6,6 @@ import 'package:timezone/data/latest.dart' as tz;
 import 'Pages/AuthPage.dart';
 import 'Pages/HomePage.dart';
 import 'firebase_options.dart';
-import 'notification_files/push_notifications.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
@@ -18,6 +17,7 @@ Future _firebaseBackgroundMessage(RemoteMessage message) async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   // await Firebase.initializeApp(
   //     options: const FirebaseOptions(
   //         apiKey: 'AIzaSyCXaqMiWXuVi8H1JP3OZZ1qZM4TiY4gkzo',
@@ -28,12 +28,12 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  // FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-  //   if (message.notification != null) {
-  //     print('background notification tapped');
-  //     navigatorKey.currentState!.pushNamed('/home', arguments: message);
-  //   }
-  // });
+  FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+    if (message.notification != null) {
+      print('background notification tapped');
+      navigatorKey.currentState!.pushNamed('/home', arguments: message);
+    }
+  });
   FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
     if (message.notification != null) {
       print('Notification Tapped');
@@ -63,7 +63,6 @@ class _MyAppState extends State<MyApp> {
       routes: {
         '/': (_) => const AuthPage(),
         '/home': (_) => const HomePage(),
-        '/pnotification': (_) => const NotificationPage(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/') {
