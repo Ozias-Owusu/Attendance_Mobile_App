@@ -1,49 +1,27 @@
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:timezone/data/latest.dart' as tz;
+import 'package:workmanager/workmanager.dart';
 
 import 'Pages/AuthPage.dart';
 import 'Pages/HomePage.dart';
 import 'firebase_options.dart';
+import 'notification_files/Workmanager_Notification_main.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
-
-Future _firebaseBackgroundMessage(RemoteMessage message) async {
-  if (message.notification != null) {
-    print('Notification Received Successfully');
-  }
-}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // await Firebase.initializeApp(
-  //     options: const FirebaseOptions(
-  //         apiKey: 'AIzaSyCXaqMiWXuVi8H1JP3OZZ1qZM4TiY4gkzo',
-  //         appId: '1:513839870238:android:6a4b2eee7ef54f4c05190f',
-  //         messagingSenderId: '513839870238',
-  //         projectId: 'attendance-web-app-a6aa7'));
-
+  Workmanager().initialize(
+      callbackDispatcher, // The top level function, aka callbackDispatcher
+      isInDebugMode:
+          true // If enabled it will post a notification whenever the task is running. Handy for debugging tasks
+      );
+  Workmanager().registerOneOffTask("task-identifier", "simpleTask");
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-    if (message.notification != null) {
-      print('background notification tapped');
-      navigatorKey.currentState!.pushNamed('/home', arguments: message);
-    }
-  });
-  FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-    if (message.notification != null) {
-      print('Notification Tapped');
-    }
-  });
 
-  PushNotifications.init();
-
-  FirebaseMessaging.onBackgroundMessage(_firebaseBackgroundMessage);
-  tz.initializeTimeZones();
   runApp(const MyApp());
 }
 
@@ -63,11 +41,13 @@ class _MyAppState extends State<MyApp> {
       routes: {
         '/': (_) => const AuthPage(),
         '/home': (_) => const HomePage(),
+        '/wmn': (_) => const NotificationScheduler(),
       },
       onGenerateRoute: (settings) {
-        if (settings.name == '/') {
+        if (settings.name == '/wmn') {
           final value = settings.arguments as int;
-          return MaterialPageRoute(builder: (_) => const AuthPage());
+          return MaterialPageRoute(
+              builder: (_) => const NotificationScheduler());
         }
         return null;
       },
