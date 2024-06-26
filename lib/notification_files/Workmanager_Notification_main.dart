@@ -1,6 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:workmanager/workmanager.dart';
+
 
 showNotification() async {
   // initialise the plugin. app_icon needs to be a added as a drawable resource to the Android head project
@@ -39,7 +43,7 @@ void callbackDispatcher() {
       FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
           FlutterLocalNotificationsPlugin();
       const AndroidInitializationSettings initializationSettingsAndroid =
-          AndroidInitializationSettings('currency');
+          AndroidInitializationSettings('launcher');
       const InitializationSettings initializationSettings =
           InitializationSettings(android: initializationSettingsAndroid);
       await flutterLocalNotificationsPlugin.initialize(initializationSettings,
@@ -54,7 +58,7 @@ void callbackDispatcher() {
               android: AndroidNotificationDetails(
             'channelId',
             'channelName',
-            icon: "currency", //add app icon here
+            icon: "launcher", //add app icon here
             importance: Importance.high,
           )));
       print('ended');
@@ -64,6 +68,18 @@ void callbackDispatcher() {
       return Future.value(false);
     }
   });
+}
+
+void schdeduleNotification(){
+  Workmanager()
+      .initialize(callbackDispatcher, isInDebugMode: false);
+  Workmanager().registerPeriodicTask(
+      "First Notification", "Scheduled Notifications",
+      tag: 'Scheduled Task',
+      frequency: const Duration(minutes: 20),
+      initialDelay: const Duration(seconds: 10),
+  );
+
 }
 
 class NotificationScheduler extends StatefulWidget {
@@ -82,18 +98,14 @@ class _NotificationSchedulerState extends State<NotificationScheduler> {
           children: [
             ElevatedButton(
                 onPressed: () {
-                  Workmanager()
-                      .initialize(callbackDispatcher, isInDebugMode: false);
-                  Workmanager().registerPeriodicTask(
-                      "First Notification", "Scheduled Notifications",
-                      tag: 'Scheduled Task',
-                      frequency: const Duration(minutes: 20),
-                      initialDelay: const Duration(seconds: 10));
+                  schdeduleNotification;
                 },
                 child: const Text('Schedule notifications'))
           ],
         ),
       ),
+
+
     );
   }
 }

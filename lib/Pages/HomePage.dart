@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 // import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../notification_files/Workmanager_Notification_main.dart';
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -14,6 +16,7 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _saveUserDetails();
+    requestNotificationPermissions();
   }
 
   String? _userName;
