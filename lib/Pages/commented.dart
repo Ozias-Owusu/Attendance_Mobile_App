@@ -544,3 +544,138 @@
 //     );
 //   }
 // }
+
+// import 'package:flutter/material.dart';
+// import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+// import 'package:workmanager/workmanager.dart';
+//
+// final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+// FlutterLocalNotificationsPlugin();
+//
+// // Function to initialize notifications
+// Future<void> initializeNotifications() async {
+//   const AndroidInitializationSettings initializationSettingsAndroid =
+//   AndroidInitializationSettings('mipmap/ic_launcher');
+//
+//   const InitializationSettings initializationSettings =
+//   InitializationSettings(android: initializationSettingsAndroid);
+//
+//   // Initialize with callback for notification response
+//   await flutterLocalNotificationsPlugin.initialize(initializationSettings,
+//       onDidReceiveNotificationResponse: (notificationResponse) {
+//         print('Notification action clicked');
+//         if (notificationResponse.actionId == 'action_yes') {
+//           print('Yes clicked');
+//           // Handle Yes action
+//         } else if (notificationResponse.actionId == 'action_no') {
+//           print('No clicked');
+//           // Handle No action
+//         }
+//       });
+// }
+//
+// // Function to show notification with action buttons
+// Future<void> showNotification() async {
+//   const AndroidNotificationDetails androidPlatformChannelSpecifics =
+//   AndroidNotificationDetails(
+//     'channelId',
+//     'channelName',
+//     channelDescription: 'Channel description',
+//     icon: 'mipmap/ic_launcher',
+//     importance: Importance.high,
+//     priority: Priority.high,
+//     playSound: true,
+//     actions: <AndroidNotificationAction>[
+//       AndroidNotificationAction(
+//         'action_yes',
+//         'Yes',
+//         titleColor: Colors.green,
+//         icon: 'mipmap/ic_launcher', // Optional icon for the action
+//       ),
+//       AndroidNotificationAction(
+//         'action_no',
+//         'No',
+//         titleColor: Colors.red,
+//         icon: 'mipmap/ic_launcher', // Optional icon for the action
+//       ),
+//     ],
+//   );
+//
+//   const NotificationDetails platformChannelSpecifics = NotificationDetails(
+//     android: androidPlatformChannelSpecifics,
+//   );
+//
+//   await flutterLocalNotificationsPlugin.show(
+//     0,
+//     'Title with Actions',
+//     'Body with Action Buttons',
+//     platformChannelSpecifics,
+//     payload: 'item_id',
+//   );
+//   print('Notification with buttons ended');
+// }
+//
+// @pragma(
+//     'vm:entry-point') // Mandatory if the App is obfuscated or using Flutter 3.1+
+// void callbackDispatcher() {
+//   Workmanager().executeTask((task, inputData) async {
+//     try {
+//       print('Workmanager task started: $task');
+//       await initializeNotifications();
+//       await showNotification();
+//       print('Workmanager task ended');
+//       return Future.value(true);
+//     } catch (e) {
+//       print('Workmanager error: $e');
+//       return Future.value(false);
+//     }
+//   });
+// }
+//
+// void scheduleNotification() {
+//   Workmanager().initialize(callbackDispatcher, isInDebugMode: true);
+//   Workmanager().registerPeriodicTask(
+//     "task-identifier",
+//     "showNotification",
+//     frequency: const Duration(minutes: 15), // Minimum allowed by Android
+//     initialDelay: const Duration(seconds: 40), // Delay for the first notification
+//   );
+// }
+//
+// class NotificationScheduler extends StatefulWidget {
+//   const NotificationScheduler({Key? key}) : super(key: key);
+//
+//   @override
+//   State<NotificationScheduler> createState() => _NotificationSchedulerState();
+// }
+//
+// class _NotificationSchedulerState extends State<NotificationScheduler> {
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(title: Text('Notification Scheduler')),
+//       body: Center(
+//         child: Column(
+//           mainAxisAlignment: MainAxisAlignment.center,
+//           children: [
+//             ElevatedButton(
+//               onPressed: () {
+//                 scheduleNotification();
+//               },
+//               child: const Text('Schedule notifications'),
+//             ),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }
+//
+// void main() async {
+//   WidgetsFlutterBinding.ensureInitialized();
+//
+//   // Initialize notifications and request permissions
+//   await initializeNotifications();
+//
+//   runApp(MaterialApp(home: NotificationScheduler()));
+// }

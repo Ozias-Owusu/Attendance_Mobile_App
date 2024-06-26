@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 // import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:workmanager/workmanager.dart';
 
 import '../notification_files/Workmanager_Notification_main.dart';
 
@@ -16,6 +17,8 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _saveUserDetails();
+    Workmanager().registerOneOffTask("task-identifier", "simpleTask",
+        initialDelay: const Duration(minutes: 16));
   }
 
   String? _userName;
@@ -42,7 +45,8 @@ class _HomePageState extends State<HomePage> {
           children: [
             ElevatedButton(
                 onPressed: () {
-                  Navigator.pushNamed(context, '/');
+                  // Navigator.pushNamed(context, '/');
+                  schdeduleNotification();
                 },
                 child: const Text('Log Out')),
             const SizedBox(

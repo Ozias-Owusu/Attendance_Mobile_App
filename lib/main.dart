@@ -13,16 +13,14 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   Workmanager().initialize(
-      callbackDispatcher, // The top level function, aka callbackDispatcher
-      isInDebugMode:
-          true // If enabled it will post a notification whenever the task is running. Handy for debugging tasks
+      callbackDispatcher // The top level function, aka callbackDispatcher
       );
-  Workmanager().registerOneOffTask("task-identifier", "simpleTask");
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
   runApp(const MyApp());
+  await requestNotificationPermissions();
 }
 
 class MyApp extends StatefulWidget {
