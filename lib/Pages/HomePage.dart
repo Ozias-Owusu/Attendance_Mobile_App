@@ -16,7 +16,6 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _saveUserDetails();
-    requestNotificationPermissions();
   }
 
   String? _userName;
