@@ -8,7 +8,8 @@ import 'firebase_options.dart';
 import 'notification_files/Workmanager_Notification_main.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
-
+//clear the local notifications and re do it then add the workmanager
+//make sure it works
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -18,7 +19,6 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-
   runApp(const MyApp());
   await requestNotificationPermissions();
 }

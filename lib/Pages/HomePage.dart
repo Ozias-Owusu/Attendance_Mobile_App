@@ -46,7 +46,7 @@ class _HomePageState extends State<HomePage> {
             ElevatedButton(
                 onPressed: () {
                   // Navigator.pushNamed(context, '/');
-                  schdeduleNotification();
+                  // schdeduleNotification();
                 },
                 child: const Text('Log Out')),
             const SizedBox(

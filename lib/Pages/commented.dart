@@ -679,3 +679,33 @@
 //
 //   runApp(MaterialApp(home: NotificationScheduler()));
 // }
+
+//clicking isn't working , work on it
+//Yes and No buttons are too small
+//save details to firestore
+// add the necessary actions when the buttons are hit
+// if (e.actionId == 'Yes') {
+// print('Yes clicked');
+// Yes action
+// } else if (e.actionId != 'Yes') {
+// print('No clicked');
+//  No action
+// Workmanager().cancelByTag("Scheduled Task");
+// }
+
+/* Future<void> _showNotificationWithActions() async {
+  const AndroidNotificationDetails androidNotificationDetails =
+      AndroidNotificationDetails(
+    '...',
+    '...',
+    actions: <AndroidNotificationAction>[
+      AndroidNotificationAction('id_1', 'Action 1'),
+      AndroidNotificationAction('id_2', 'Action 2'),
+      AndroidNotificationAction('id_3', 'Action 3'),
+    ],
+  );
+  const NotificationDetails notificationDetails =
+      NotificationDetails(android: androidNotificationDetails);
+  await flutterLocalNotificationsPlugin.show(
+      0, '...', '...', notificationDetails);
+} */
