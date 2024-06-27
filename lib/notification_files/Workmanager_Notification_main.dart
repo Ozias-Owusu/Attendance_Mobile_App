@@ -13,19 +13,21 @@ showNotification() async {
   const InitializationSettings initializationSettings =
       InitializationSettings(android: initializationSettingsAndroid);
   await flutterLocalNotificationsPlugin.initialize(initializationSettings,
-      onDidReceiveNotificationResponse: (notificationResponse) {
+      onDidReceiveNotificationResponse: (NotificationResponse notificationResponse) {
     print('object');
 //clicking isn't working , work on it
     //Yes and No buttons are too small
     //save details to firestore
     // add the necessary actions when the buttons are hit
+
+
     if (notificationResponse.actionId == 'Yes') {
       print('Yes clicked');
       // Yes action
     } else if (notificationResponse.actionId == 'No') {
-      print('No clicked');
       //  No action
       Workmanager().cancelByTag("Scheduled Task");
+      print('No clicked');
     }
   });
   flutterLocalNotificationsPlugin.show(
