@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 
-import '../notification_files/Workmanager_Notification_main.dart';
+import 'noifications_service_new.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -46,12 +46,25 @@ class _HomePageState extends State<HomePage> {
             ElevatedButton(
                 onPressed: () {
                   // Navigator.pushNamed(context, '/');
-                  schdeduleNotification();
+                  // schdeduleNotification();
+                  Workmanager()
+                      .initialize(callbackDispatcher, isInDebugMode: false);
+                  Workmanager().registerPeriodicTask('uniqueName', 'task',
+                      frequency: const Duration(minutes: 15),
+                      initialDelay: const Duration(seconds: 5),
+                      tag: 'task');
                 },
-                child: const Text('Log Out')),
+                child: const Text('Schedule task')),
             const SizedBox(
-              height: 10,
+              height: 20,
             ),
+            ElevatedButton(
+                onPressed: () {
+                  // Navigator.pushNamed(context, '/');
+                  // schdeduleNotification();
+                  Workmanager().cancelByTag('task');
+                },
+                child: const Text('Log cancel')),
           ],
         ),
       ),

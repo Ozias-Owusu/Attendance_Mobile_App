@@ -6,16 +6,15 @@ import 'package:workmanager/workmanager.dart';
 import 'Pages/AuthPage.dart';
 import 'Pages/HomePage.dart';
 import 'firebase_options.dart';
-import 'notification_files/Workmanager_Notification_main.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Workmanager().initialize(
-  //     callbackDispatcher // The top level function, aka callbackDispatcher
-  //     );
+  Workmanager().initialize(
+      callbackDispatcher // The top level function, aka callbackDispatcher
+      );
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -45,8 +44,7 @@ class _MyAppState extends State<MyApp> {
       onGenerateRoute: (settings) {
         if (settings.name == '/home') {
           final value = settings.arguments as int;
-          return MaterialPageRoute(
-              builder: (_) => const HomePage());
+          return MaterialPageRoute(builder: (_) => const HomePage());
         }
         return null;
       },
