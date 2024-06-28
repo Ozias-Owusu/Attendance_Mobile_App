@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:workmanager/workmanager.dart';
 
@@ -7,58 +5,21 @@ class NotificationService {
   static final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
-  // static Future<void> onDidReceiveNotificationResponse(
-  //     NotificationResponse notificationResponse) async {}
-
-  // static Future<void> onActionReceived(receivedAction) async {
-  //   // Check the actionId to determine which button was clicked
-  //   switch (receivedAction.actionId) {
-  //     case 'Yes_Button':
-  //       print('yes button clicked');
-  //       break;
-  //     case 'No_Button':
-  //       print('no button clicked');
-  //       break;
-  //     default:
-  //       print('other action or notification clicked');
-  //   }
-  // }
-
   static Future<void> onDidReceiveNotificationResponse(
       NotificationResponse notificationResponse) async {}
 
   static Future<void> onActionReceived(receivedAction) async {
-    // Get the current user ID
-    String userId = getCurrentUserId();
-
-    // Get Firestore instance
-    final firestore = FirebaseFirestore.instance;
-
-    // Reference to the user's document
-    final userDocument = firestore.collection('users').doc(userId);
-
-    // Update Firestore based on action
+    // Check the actionId to determine which button was clicked
     switch (receivedAction.actionId) {
       case 'Yes_Button':
-        await userDocument
-            .update({'lastYesButtonClick': FieldValue.serverTimestamp()});
         print('yes button clicked');
         break;
       case 'No_Button':
-        await userDocument.update({'lastYesButtonClick': null});
         print('no button clicked');
         break;
       default:
         print('other action or notification clicked');
     }
-  }
-
-  static String getCurrentUserId() {
-    // Assuming you're using Firebase Authentication
-    User? user = FirebaseAuth.instance.currentUser;
-
-    // Return the user's unique ID or a default value if not authenticated
-    return user?.uid ?? 'unknown_user';
   }
 
   static Future<void> init() async {
