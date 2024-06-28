@@ -1,3 +1,4 @@
+import 'package:attendance_mobile_app/Pages/noifications_service_new.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:workmanager/workmanager.dart';
@@ -12,15 +13,16 @@ final navigatorKey = GlobalKey<NavigatorState>();
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  Workmanager().initialize(
-      callbackDispatcher // The top level function, aka callbackDispatcher
-      );
+  // Workmanager().initialize(
+  //     callbackDispatcher // The top level function, aka callbackDispatcher
+  //     );
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
+  await NotificationService.init();
   runApp(const MyApp());
-  await requestNotificationPermissions();
+  // await requestNotificationPermissions();
 }
 
 class MyApp extends StatefulWidget {
@@ -39,13 +41,12 @@ class _MyAppState extends State<MyApp> {
       routes: {
         '/': (_) => const AuthPage(),
         '/home': (_) => const HomePage(),
-        '/wmn': (_) => const NotificationScheduler(),
       },
       onGenerateRoute: (settings) {
-        if (settings.name == '/wmn') {
+        if (settings.name == '/home') {
           final value = settings.arguments as int;
           return MaterialPageRoute(
-              builder: (_) => const NotificationScheduler());
+              builder: (_) => const HomePage());
         }
         return null;
       },
