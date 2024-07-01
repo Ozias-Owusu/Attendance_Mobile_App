@@ -16,6 +16,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+
     _saveUserDetails();
     Workmanager().registerOneOffTask("task-identifier", "simpleTask",
         initialDelay: const Duration(minutes: 16));
@@ -39,35 +40,37 @@ class _HomePageState extends State<HomePage> {
     final data = ModalRoute.of(context)?.settings.arguments;
 
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton(
-                onPressed: () {
-                  // Navigator.pushNamed(context, '/');
-                  // schdeduleNotification();
-                  Workmanager()
-                      .initialize(callbackDispatcher, isInDebugMode: false);
-                  Workmanager().registerPeriodicTask('uniqueName', 'task',
-                      frequency: const Duration(minutes: 15),
-                      initialDelay: const Duration(seconds: 5),
-                      tag: 'task');
-                },
-                child: const Text('Schedule task')),
-            const SizedBox(
-              height: 20,
-            ),
-            ElevatedButton(
-                onPressed: () {
-                  // Navigator.pushNamed(context, '/');
-                  // schdeduleNotification();
-                  Workmanager().cancelByTag('task');
-                },
-                child: const Text('Log cancel')),
-          ],
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton(
+                  onPressed: () {
+                    Workmanager()
+                        .initialize(callbackDispatcher, isInDebugMode: false);
+                    Workmanager().registerPeriodicTask('uniqueName', 'task',
+                        frequency: const Duration(minutes: 15),
+                        initialDelay: const Duration(seconds: 5),
+                        tag: 'task');
+                  },
+                  child: const Text('Schedule task')),
+              const SizedBox(
+                height: 20,
+              ),
+              ElevatedButton(
+                  onPressed: () {
+                    Workmanager().cancelByTag('task');
+                  },
+                  child: const Text('Log cancel')),
+            ],
+          ),
         ),
-      ),
-    );
+        floatingActionButton: FloatingActionButton(
+          splashColor: Colors.purple,
+          onPressed: () {
+            Navigator.pushNamed(context, '/views');
+          },
+          child: const Icon(Icons.remove_red_eye),
+        ));
   }
 }

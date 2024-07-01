@@ -1,4 +1,5 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:workmanager/workmanager.dart';
 
 class NotificationService {
@@ -8,17 +9,47 @@ class NotificationService {
   static Future<void> onDidReceiveNotificationResponse(
       NotificationResponse notificationResponse) async {}
 
+  // Notifications
+  // (
+  // Display message with buttons-done
+  // Adding geolocation-done
+  // Recording actions-
+  // displaying records (automatically delete after a month)-
+  //Fix location access permissions
+  //)
+
   static Future<void> onActionReceived(receivedAction) async {
     // Check the actionId to determine which button was clicked
     switch (receivedAction.actionId) {
       case 'Yes_Button':
-        print('yes button clicked');
+        // Get the user's current position
+        Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+        );
+        // Define the target coordinate and radius
+        double targetLatitude = 37.7749;
+        double targetLongitude = -122.4194;
+        double radius = 100; // in meters
+
+        double distance = Geolocator.distanceBetween(
+          position.latitude,
+          position.longitude,
+          targetLatitude,
+          targetLongitude,
+        );
+
+        // Check if the user is within the specified radius
+        if (distance <= radius) {
+          print('Yes button clicked (within radius)');
+        } else {
+          print('Yes button clicked (outside radius)');
+        }
         break;
       case 'No_Button':
-        print('no button clicked');
+        print('No button clicked');
         break;
       default:
-        print('other action or notification clicked');
+        print('Other action or notification clicked');
     }
   }
 
