@@ -1,5 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:workmanager/workmanager.dart';
 
 class NotificationService {
@@ -13,12 +15,18 @@ class NotificationService {
   // (
   // Display message with buttons-done
   // Adding geolocation-done
-  // Recording actions-
+  // Recording actions to firestore- issues
+  //add a date range- done
   // displaying records (automatically delete after a month)-
-  //Fix location access permissions
+  //Fix location access permissions-done
   //)
 
   static Future<void> onActionReceived(receivedAction) async {
+    // Get the current month and year
+    DateTime now = DateTime.now();
+    int currentMonth = now.month;
+    int currentYear = now.year;
+
     // Check the actionId to determine which button was clicked
     switch (receivedAction.actionId) {
       case 'Yes_Button':
@@ -27,8 +35,8 @@ class NotificationService {
           desiredAccuracy: LocationAccuracy.high,
         );
         // Define the target coordinate and radius
-        double targetLatitude = 37.7749;
-        double targetLongitude = -122.4194;
+        double targetLatitude = 5.6129311;
+        double targetLongitude = -0.1823302;
         double radius = 100; // in meters
 
         double distance = Geolocator.distanceBetween(
@@ -40,13 +48,49 @@ class NotificationService {
 
         // Check if the user is within the specified radius
         if (distance <= radius) {
-          print('Yes button clicked (within radius)');
+          // Save "Yes im at work" with the current time to Firestore
+          await FirebaseFirestore.instance
+              .collection('actions')
+              .doc('$currentYear-$currentMonth')
+              .collection('yes')
+              .add({
+            'action': 'Yes im at work',
+            'timestamp': Timestamp.now(),
+          });
+          print('Yes button clicked inside radius');
         } else {
-          print('Yes button clicked (outside radius)');
+          // Save "Yes outside the geolocator radius" with the current user's time to Firestore
+          await FirebaseFirestore.instance
+              .collection('actions')
+              .doc('$currentYear-$currentMonth')
+              .collection('no')
+              .add({
+            'action': 'No im not at work',
+            'timestamp': Timestamp.now(),
+          });
+          print('Yes button clicked outside radius');
         }
         break;
       case 'No_Button':
+        // Save "No action" with the current users time to Firestore
+        await FirebaseFirestore.instance
+            .collection('actions')
+            .doc('$currentYear-$currentMonth')
+            .collection('no')
+            .add({
+          'action': 'No im not at work',
+          'timestamp': Timestamp.now(),
+        });
         print('No button clicked');
+        // Save "No im not at work" with the current time to Firestore
+        await FirebaseFirestore.instance
+            .collection('actions')
+            .doc('$currentYear-$currentMonth')
+            .collection('no')
+            .add({
+          'action': 'No im not at work',
+          'timestamp': Timestamp.now(),
+        });
         break;
       default:
         print('Other action or notification clicked');
@@ -138,4 +182,32 @@ void callbackDispatcher() {
       return Future.value(false);
     }
   });
+}
+
+Permission_Checker() async {
+  // Request location permission
+  PermissionStatus status = await Permission.location.request();
+
+  // Check the permission status
+  if (status.isGranted) {
+    // If Permission granted,
+    print('Location permission granted');
+  } else if (status.isDenied) {
+    // If Permission denied,
+    print('Location permission denied');
+  }
+}
+
+Permission_Checker_2() async {
+  // Request location permission
+  PermissionStatus status = await Permission.notification.request();
+
+  // Check the permission status
+  if (status.isGranted) {
+    // If Permission granted,
+    print('Location permission granted');
+  } else if (status.isDenied) {
+    // If Permission denied,
+    print('Location permission denied');
+  }
 }
