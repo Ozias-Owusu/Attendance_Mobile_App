@@ -23,43 +23,57 @@ class NotificationService {
 
   static Future<void> onActionReceived(receivedAction) async {
     // Get the current month and year
-    DateTime now = DateTime.now();
-    int currentMonth = now.month;
-    int currentYear = now.year;
+    try {
+      DateTime now = DateTime.now();
+      int currentMonth = now.month;
+      int currentYear = now.year;
 
-    // Check the actionId to determine which button was clicked
-    switch (receivedAction.actionId) {
-      case 'Yes_Button':
+      // Check the actionId to determine which button was clicked
+      switch (receivedAction.actionId) {
+        case 'Yes_Button':
         // Get the user's current position
-        Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
-        );
-        // Define the target coordinate and radius
-        double targetLatitude = 5.6129311;
-        double targetLongitude = -0.1823302;
-        double radius = 100; // in meters
+          Position position = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.high,
+          );
+          // Define the target coordinate and radius
+          double targetLatitude = 5.6129311;
+          double targetLongitude = -0.1823302;
+          double radius = 100; // in meters
 
-        double distance = Geolocator.distanceBetween(
-          position.latitude,
-          position.longitude,
-          targetLatitude,
-          targetLongitude,
-        );
+          double distance = Geolocator.distanceBetween(
+            position.latitude,
+            position.longitude,
+            targetLatitude,
+            targetLongitude,
+          );
 
-        // Check if the user is within the specified radius
-        if (distance <= radius) {
-          // Save "Yes im at work" with the current time to Firestore
-          await FirebaseFirestore.instance
-              .collection('actions')
-              .doc('$currentYear-$currentMonth')
-              .collection('yes')
-              .add({
-            'action': 'Yes im at work',
-            'timestamp': Timestamp.now(),
-          });
-          print('Yes button clicked inside radius');
-        } else {
-          // Save "Yes outside the geolocator radius" with the current user's time to Firestore
+          // Check if the user is within the specified radius
+          if (distance <= radius) {
+            // Save "Yes im at work" with the current time to Firestore
+            await FirebaseFirestore.instance
+                .collection('actions')
+                .doc('$currentYear-$currentMonth')
+                .collection('yes')
+                .add({
+              'action': 'Yes im at work',
+              'timestamp': Timestamp.now(),
+            });
+            print('Yes button clicked inside radius');
+          } else {
+            // Save "Yes outside the geolocator radius" with the current user's time to Firestore
+            await FirebaseFirestore.instance
+                .collection('actions')
+                .doc('$currentYear-$currentMonth')
+                .collection('no')
+                .add({
+              'action': 'No im not at work',
+              'timestamp': Timestamp.now(),
+            });
+            print('Yes button clicked outside radius');
+          }
+          break;
+        case 'No_Button':
+        // Save "No action" with the current users time to Firestore
           await FirebaseFirestore.instance
               .collection('actions')
               .doc('$currentYear-$currentMonth')
@@ -68,32 +82,22 @@ class NotificationService {
             'action': 'No im not at work',
             'timestamp': Timestamp.now(),
           });
-          print('Yes button clicked outside radius');
-        }
-        break;
-      case 'No_Button':
-        // Save "No action" with the current users time to Firestore
-        await FirebaseFirestore.instance
-            .collection('actions')
-            .doc('$currentYear-$currentMonth')
-            .collection('no')
-            .add({
-          'action': 'No im not at work',
-          'timestamp': Timestamp.now(),
-        });
-        print('No button clicked');
-        // Save "No im not at work" with the current time to Firestore
-        await FirebaseFirestore.instance
-            .collection('actions')
-            .doc('$currentYear-$currentMonth')
-            .collection('no')
-            .add({
-          'action': 'No im not at work',
-          'timestamp': Timestamp.now(),
-        });
-        break;
-      default:
-        print('Other action or notification clicked');
+          print('No button clicked');
+          // Save "No im not at work" with the current time to Firestore
+          await FirebaseFirestore.instance
+              .collection('actions')
+              .doc('$currentYear-$currentMonth')
+              .collection('no')
+              .add({
+            'action': 'No im not at work',
+            'timestamp': Timestamp.now(),
+          });
+          break;
+        default:
+          print('Other action or notification clicked');
+      }
+    }catch(e){
+      print('Error in onActionReceive: $e');
     }
   }
 

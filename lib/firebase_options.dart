@@ -67,4 +67,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'attendance-web-app-a6aa7.appspot.com',
     iosBundleId: 'com.example.attendanceMobileApp',
   );
+
 }
