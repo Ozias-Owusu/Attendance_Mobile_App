@@ -6,7 +6,7 @@ class ViewsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Hello 3')),
+      appBar: AppBar(title: const Text('Hello 3')),
     );
   }
 }

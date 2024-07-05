@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:firebase_database';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -7,9 +8,6 @@ import 'package:workmanager/workmanager.dart';
 class NotificationService {
   static final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
-
-  static Future<void> onDidReceiveNotificationResponse(
-      NotificationResponse notificationResponse) async {}
 
   // Notifications
   // (
@@ -21,6 +19,9 @@ class NotificationService {
   //Fix location access permissions-done
   //)
 
+  static Future<void> onDidReceiveNotificationResponse(
+      NotificationResponse notificationResponse) async {}
+
   static Future<void> onActionReceived(receivedAction) async {
     // Get the current month and year
     try {
@@ -31,7 +32,7 @@ class NotificationService {
       // Check the actionId to determine which button was clicked
       switch (receivedAction.actionId) {
         case 'Yes_Button':
-        // Get the user's current position
+          // Get the user's current position
           Position position = await Geolocator.getCurrentPosition(
             desiredAccuracy: LocationAccuracy.high,
           );
@@ -73,7 +74,7 @@ class NotificationService {
           }
           break;
         case 'No_Button':
-        // Save "No action" with the current users time to Firestore
+          // Save "No action" with the current users time to Firestore
           await FirebaseFirestore.instance
               .collection('actions')
               .doc('$currentYear-$currentMonth')
@@ -96,7 +97,7 @@ class NotificationService {
         default:
           print('Other action or notification clicked');
       }
-    }catch(e){
+    } catch (e) {
       print('Error in onActionReceive: $e');
     }
   }

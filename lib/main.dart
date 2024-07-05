@@ -10,8 +10,6 @@ import 'Pages/SettingsPage.dart';
 import 'Pages/ViewsPage.dart';
 import 'firebase_options.dart';
 
-
-
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
@@ -19,7 +17,7 @@ Future<void> main() async {
   );
   Workmanager().initialize(
       callbackDispatcher // The top level function, aka callbackDispatcher
-  );
+      );
   await Permission_Checker();
   await Permission_Checker_2();
   await NotificationService.init();
@@ -28,11 +26,8 @@ Future<void> main() async {
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
-
-
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
-
   @override
   State<MyApp> createState() => _MyAppState();
 }

@@ -68,7 +68,18 @@ class _HomePageState extends State<HomePage> {
           onPressed: () {
             Navigator.pushNamed(context, '/views');
           },
-          child: const Icon(Icons.remove_red_eye),
+          child: const Column(
+            children: [
+              SizedBox(
+                height: 3,
+              ),
+              Icon(Icons.remove_red_eye),
+              SizedBox(
+                height: 3,
+              ),
+              Text('Views')
+            ],
+          ),
         ));
   }
 }
