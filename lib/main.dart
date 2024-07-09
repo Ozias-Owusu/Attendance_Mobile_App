@@ -1,6 +1,7 @@
 import 'package:attendance_mobile_app/Pages/noifications_service_new.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:timezone/data/latest.dart' as tz;
 import 'package:workmanager/workmanager.dart';
 
 import 'Pages/AuthPage.dart';
@@ -21,6 +22,7 @@ Future<void> main() async {
   await Permission_Checker();
   await Permission_Checker_2();
   await NotificationService.init();
+  tz.initializeTimeZones();
   runApp(const MyApp());
 }
 

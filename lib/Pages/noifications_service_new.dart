@@ -1,8 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 // import 'package:firebase_database';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:timezone/timezone.dart' as tz;
 import 'package:workmanager/workmanager.dart';
 
 class NotificationService {
@@ -25,6 +28,12 @@ class NotificationService {
   static Future<void> onActionReceived(receivedAction) async {
     // Get the current month and year
     try {
+      await Firebase.initializeApp();
+
+      // Retrieve the user's name from shared preferences
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? userName = prefs.getString('UserName') ?? 'Unknown User';
+
       DateTime now = DateTime.now();
       int currentMonth = now.month;
       int currentYear = now.year;
@@ -53,9 +62,10 @@ class NotificationService {
             // Save "Yes im at work" with the current time to Firestore
             await FirebaseFirestore.instance
                 .collection('actions')
-                .doc('$currentYear-$currentMonth')
-                .collection('yes')
+                .doc('$currentMonth-$currentYear')
+                .collection('yes-$currentMonth')
                 .add({
+              'userName': userName ?? 'Unknown',
               'action': 'Yes im at work',
               'timestamp': Timestamp.now(),
             });
@@ -64,9 +74,10 @@ class NotificationService {
             // Save "Yes outside the geolocator radius" with the current user's time to Firestore
             await FirebaseFirestore.instance
                 .collection('actions')
-                .doc('$currentYear-$currentMonth')
+                .doc('$currentMonth-$currentYear')
                 .collection('no')
                 .add({
+              'userName': userName ?? 'Unknown',
               'action': 'No im not at work',
               'timestamp': Timestamp.now(),
             });
@@ -77,9 +88,10 @@ class NotificationService {
           // Save "No action" with the current users time to Firestore
           await FirebaseFirestore.instance
               .collection('actions')
-              .doc('$currentYear-$currentMonth')
+              .doc('$currentMonth-$currentYear')
               .collection('no')
               .add({
+            'userName': userName ?? 'Unknown',
             'action': 'No im not at work',
             'timestamp': Timestamp.now(),
           });
@@ -87,9 +99,10 @@ class NotificationService {
           // Save "No im not at work" with the current time to Firestore
           await FirebaseFirestore.instance
               .collection('actions')
-              .doc('$currentYear-$currentMonth')
+              .doc('$currentMonth-$currentYear')
               .collection('no')
               .add({
+            'userName': userName ?? 'Unknown',
             'action': 'No im not at work',
             'timestamp': Timestamp.now(),
           });
@@ -147,7 +160,38 @@ class NotificationService {
     );
     await flutterLocalNotificationsPlugin.show(
         0, title, body, platformChannelSpecifics);
+
+    await flutterLocalNotificationsPlugin.zonedSchedule(
+      0,
+      'Good Morning!',
+      'Here is your daily notification.',
+      _nextInstanceOfEightAM(),
+      platformChannelSpecifics,
+      androidAllowWhileIdle: true,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      matchDateTimeComponents: DateTimeComponents.time,
+    );
   }
+
+  static tz.TZDateTime _nextInstanceOfEightAM() {
+    final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
+    tz.TZDateTime scheduledDate =
+        tz.TZDateTime(tz.local, now.year, now.month, now.day, 8);
+    if (scheduledDate.isBefore(now)) {
+      scheduledDate = scheduledDate.add(const Duration(days: 1));
+    }
+    return scheduledDate;
+  }
+}
+
+Future<void> scheduleDailyNotifications() async {
+  const AndroidNotificationDetails androidPlatformChannelSpecifics =
+      AndroidNotificationDetails(
+          'daily_notification_channel_id', 'Daily Notifications',
+          importance: Importance.max, priority: Priority.max);
+  const NotificationDetails platformChannelSpecifics =
+      NotificationDetails(android: androidPlatformChannelSpecifics);
 }
 
 @pragma(

@@ -16,8 +16,9 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _saveUserDetails();
-    Workmanager().registerOneOffTask("task-identifier", "simpleTask",
-        initialDelay: const Duration(minutes: 16));
+    _initializeWorkManager();
+    NotificationService.showNotification(
+        'Attendance Notice', 'Are you at work?');
   }
 
   String? _userName;
@@ -33,53 +34,37 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  Future<void> _initializeWorkManager() async {
+    Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
+    Workmanager().registerPeriodicTask(
+      'dailyNotification',
+      'dailyNotificationTask',
+      frequency: const Duration(hours: 24),
+      initialDelay: const Duration(minutes: 1),
+      inputData: {},
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final data = ModalRoute.of(context)?.settings.arguments;
-
     return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ElevatedButton(
-                  onPressed: () {
-                    Workmanager()
-                        .initialize(callbackDispatcher, isInDebugMode: false);
-                    Workmanager().registerPeriodicTask('uniqueName', 'task',
-                        frequency: const Duration(minutes: 15),
-                        initialDelay: const Duration(seconds: 5),
-                        tag: 'task');
-                  },
-                  child: const Text('Schedule task')),
-              const SizedBox(
-                height: 20,
-              ),
-              ElevatedButton(
-                  onPressed: () {
-                    Workmanager().cancelByTag('task');
-                  },
-                  child: const Text('Log cancel')),
-            ],
-          ),
-        ),
         floatingActionButton: FloatingActionButton(
-          splashColor: Colors.purple,
-          onPressed: () {
-            Navigator.pushNamed(context, '/views');
-          },
-          child: const Column(
-            children: [
-              SizedBox(
-                height: 3,
-              ),
-              Icon(Icons.remove_red_eye),
-              SizedBox(
-                height: 3,
-              ),
-              Text('Views')
-            ],
+      splashColor: Colors.purple,
+      onPressed: () {
+        Navigator.pushNamed(context, '/views');
+      },
+      child: const Column(
+        children: [
+          SizedBox(
+            height: 3,
           ),
-        ));
+          Icon(Icons.remove_red_eye),
+          SizedBox(
+            height: 3,
+          ),
+          Text('Views')
+        ],
+      ),
+    ));
   }
 }
