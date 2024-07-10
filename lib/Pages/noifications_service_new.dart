@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 // import 'package:firebase_database';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
@@ -37,6 +38,8 @@ class NotificationService {
       DateTime now = DateTime.now();
       int currentMonth = now.month;
       int currentYear = now.year;
+      String currentDay =
+          DateFormat('EEEE').format(now); // Get the day of the week
 
       // Check the actionId to determine which button was clicked
       switch (receivedAction.actionId) {
@@ -61,21 +64,26 @@ class NotificationService {
           if (distance <= radius) {
             // Save "Yes im at work" with the current time to Firestore
             await FirebaseFirestore.instance
-                .collection('actions')
-                .doc('$currentMonth-$currentYear')
-                .collection('yes-$currentMonth')
+                .collection('Records')
+                .doc('Starting_time')
+                .collection('$currentMonth-$currentYear')
+                .doc('yes-$currentMonth')
+                .collection('Yes')
                 .add({
               'userName': userName ?? 'Unknown',
               'action': 'Yes im at work',
               'timestamp': Timestamp.now(),
+              'dayOfWeek': currentDay,
             });
             print('Yes button clicked inside radius');
           } else {
             // Save "Yes outside the geolocator radius" with the current user's time to Firestore
             await FirebaseFirestore.instance
-                .collection('actions')
-                .doc('$currentMonth-$currentYear')
-                .collection('no')
+                .collection('Records')
+                .doc('Starting_time')
+                .collection('$currentMonth-$currentYear')
+                .doc('Yes_Outside-$currentMonth')
+                .collection('Yes_Outside')
                 .add({
               'userName': userName ?? 'Unknown',
               'action': 'No im not at work',
@@ -87,9 +95,11 @@ class NotificationService {
         case 'No_Button':
           // Save "No action" with the current users time to Firestore
           await FirebaseFirestore.instance
-              .collection('actions')
-              .doc('$currentMonth-$currentYear')
-              .collection('no')
+              .collection('Records')
+              .doc('Starting_time')
+              .collection('$currentMonth-$currentYear')
+              .doc('No-$currentMonth')
+              .collection('No')
               .add({
             'userName': userName ?? 'Unknown',
             'action': 'No im not at work',
@@ -98,9 +108,11 @@ class NotificationService {
           print('No button clicked');
           // Save "No im not at work" with the current time to Firestore
           await FirebaseFirestore.instance
-              .collection('actions')
-              .doc('$currentMonth-$currentYear')
-              .collection('no')
+              .collection('Records')
+              .doc('Starting_time')
+              .collection('$currentMonth-$currentYear')
+              .doc('No-$currentMonth')
+              .collection('No')
               .add({
             'userName': userName ?? 'Unknown',
             'action': 'No im not at work',
@@ -163,8 +175,8 @@ class NotificationService {
 
     await flutterLocalNotificationsPlugin.zonedSchedule(
       0,
-      'Good Morning!',
-      'Here is your daily notification.',
+      'Attendance Notice!',
+      'Are you at work?',
       _nextInstanceOfEightAM(),
       platformChannelSpecifics,
       androidAllowWhileIdle: true,

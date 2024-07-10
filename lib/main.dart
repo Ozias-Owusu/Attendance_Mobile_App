@@ -42,9 +42,9 @@ class _MyAppState extends State<MyApp> {
       debugShowCheckedModeBanner: false,
       routes: {
         '/': (_) => const AuthPage(),
+        '/profile': (_) => const ProfilePage(),
         '/home': (_) => const HomePage(),
         '/settings': (_) => const SettingsPage(),
-        '/profile': (_) => const ProfilePage(),
         '/views': (_) => const ViewsPage(),
       },
       onGenerateRoute: (settings) {
