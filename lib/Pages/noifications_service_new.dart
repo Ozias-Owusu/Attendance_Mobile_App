@@ -17,7 +17,7 @@ class NotificationService {
   // (
   // Display message with buttons-done
   // Adding geolocation-done
-  // Recording actions to firestore- issues
+  // Recording actions to firestore- fixed
   //add a date range- done
   // displaying records (automatically delete after a month)-
   //Fix location access permissions-done
@@ -123,7 +123,7 @@ class NotificationService {
           print('Other action or notification clicked');
       }
     } catch (e) {
-      print('Error in onActionReceive: $e');   
+      print('Error in onActionReceive: $e');
     }
   }
 
