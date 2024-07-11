@@ -123,7 +123,7 @@ class NotificationService {
           print('Other action or notification clicked');
       }
     } catch (e) {
-      print('Error in onActionReceive: $e');
+      print('Error in onActionReceive: $e');   
     }
   }
 

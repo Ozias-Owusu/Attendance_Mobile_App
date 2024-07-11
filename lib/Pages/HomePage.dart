@@ -24,9 +24,9 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _saveUserDetails();
     _initializeWorkManager();
-    fetchRecords();
     NotificationService.showNotification(
         'Attendance Notice', 'Are you at work?');
+    fetchRecords();
   }
 
   Future<void> fetchRecords() async {
@@ -146,47 +146,66 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return Scaffold(appBar: AppBar(
+      automaticallyImplyLeading: false,
+        actions: [
+    IconButton(
+    icon:const Icon(Icons.settings),
+      onPressed: () {
+      Navigator.pushNamed(context, '/settings');
+
+      },
+    ),],
+      title:const Text('Home Page'),
+    ),
       body: isLoading
           ? const Center(
               child: CircularProgressIndicator(),
             )
           : Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Center(
-                child: PieChart(
-                  PieChartData(
-                    sections: [
-                      PieChartSectionData(
-                        color: Colors.green,
-                        // value: yesInsideCount.toDouble(),
-                        badgeWidget: _buildIcon('Yes (Inside)'),
-                        badgePositionPercentageOffset: 0.7,
-                        radius: 60,
+              child: Column(
+                children: [
+                  Center(
+                    child:  Container(
+                      height: 300, // Adjust the height of the container
+                      width: 300,
+                      child: PieChart(
+                        PieChartData(
+                          sections: [
+                            PieChartSectionData(
+                              color: Colors.green,
+                              // value: yesInsideCount.toDouble(),
+                              badgeWidget: _buildIcon('Yes (Inside)'),
+                              badgePositionPercentageOffset: 0.7,
+                              radius: 60,
+                            ),
+                            PieChartSectionData(
+                              color: Colors.orange,
+                              // value: yesOutsideCount.toDouble(),
+                              badgeWidget: _buildIcon('Yes (Outside)'),
+                              badgePositionPercentageOffset: 0.5,
+                              radius: 50,
+                            ),
+                            PieChartSectionData(
+                              color: Colors.red,
+                              value: noCount.toDouble(),
+                              badgeWidget: _buildIcon('No'),
+                              badgePositionPercentageOffset: 0.5,
+                              radius: 50,
+                            ),
+                          ],
+                          centerSpaceRadius: 50,
+                          sectionsSpace: 2,
+                        ),
                       ),
-                      PieChartSectionData(
-                        color: Colors.orange,
-                        value: yesOutsideCount.toDouble(),
-                        badgeWidget: _buildIcon('Yes (Outside)'),
-                        badgePositionPercentageOffset: 0.5,
-                        radius: 50,
-                      ),
-                      PieChartSectionData(
-                        color: Colors.red,
-                        value: noCount.toDouble(),
-                        badgeWidget: _buildIcon('No'),
-                        badgePositionPercentageOffset: 0.5,
-                        radius: 50,
-                      ),
-                    ],
-                    centerSpaceRadius: 50,
-                    sectionsSpace: 2,
+                    ),
                   ),
-                ),
-                // const SizedBox(height: 16),
-                // _buildLegendItem(Colors.green, 'Yes (Inside)'),
-                // _buildLegendItem(Colors.orange, 'Yes (Outside)'),
-                // _buildLegendItem(Colors.red, 'No'),
+                  const SizedBox(height: 16),
+                  _buildLegendItem(Colors.green, 'Yes (Inside)'),
+                  _buildLegendItem(Colors.orange, 'Yes (Outside)'),
+                  _buildLegendItem(Colors.red, 'No'),
+                ],
               ),
             ),
       floatingActionButton: FloatingActionButton(
