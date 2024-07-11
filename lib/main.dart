@@ -8,6 +8,7 @@ import 'Pages/AuthPage.dart';
 import 'Pages/HomePage.dart';
 import 'Pages/ProfilePage.dart';
 import 'Pages/SettingsPage.dart';
+import 'Pages/SplashScreen.dart';
 import 'Pages/ViewsPage.dart';
 import 'firebase_options.dart';
 
@@ -40,12 +41,14 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
+      initialRoute: '/splash',
       routes: {
         '/': (_) => const AuthPage(),
         '/profile': (_) => const ProfilePage(),
         '/home': (_) => const HomePage(),
         '/settings': (_) => const SettingsPage(),
         '/views': (_) => const ViewsPage(),
+        '/splash': (_) => const Splashscreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/settings') {

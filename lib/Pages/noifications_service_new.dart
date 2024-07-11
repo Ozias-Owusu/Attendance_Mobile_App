@@ -21,6 +21,11 @@ class NotificationService {
   //add a date range- done
   // displaying records (automatically delete after a month)-
   //Fix location access permissions-done
+  //Splash screen -  needs work
+  //Notifications adjustment -
+  //Profile page and settings page completion -
+  //Views Page
+  //
   //)
 
   static Future<void> onDidReceiveNotificationResponse(
@@ -34,6 +39,7 @@ class NotificationService {
       // Retrieve the user's name from shared preferences
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? userName = prefs.getString('UserName') ?? 'Unknown User';
+      String? userEmail = prefs.getString('userEmail') ?? 'Unknown Email';
 
       DateTime now = DateTime.now();
       int currentMonth = now.month;
@@ -66,14 +72,15 @@ class NotificationService {
             await FirebaseFirestore.instance
                 .collection('Records')
                 .doc('Starting_time')
-                .collection('$currentMonth-$currentYear')
-                .doc('yes-$currentMonth')
+                .collection('$currentMonth-$currentYear-$currentDay')
+                .doc('yes-$currentDay')
                 .collection('Yes')
                 .add({
-              'userName': userName ?? 'Unknown',
-              'action': 'Yes im at work',
               'timestamp': Timestamp.now(),
+              'action': 'Yes im at work',
               'dayOfWeek': currentDay,
+              'userEmail': userEmail ?? 'Unknown',
+              'userName': userName ?? 'Unknown',
             });
             print('Yes button clicked inside radius');
           } else {
@@ -81,13 +88,15 @@ class NotificationService {
             await FirebaseFirestore.instance
                 .collection('Records')
                 .doc('Starting_time')
-                .collection('$currentMonth-$currentYear')
-                .doc('Yes_Outside-$currentMonth')
+                .collection('$currentMonth-$currentYear-$currentDay')
+                .doc('Yes_Outside-$currentDay')
                 .collection('Yes_Outside')
                 .add({
-              'userName': userName ?? 'Unknown',
-              'action': 'No im not at work',
               'timestamp': Timestamp.now(),
+              'action': 'No im not at work',
+              'dayOfWeek': currentDay,
+              'userEmail': userEmail ?? 'Unknown',
+              'userName': userName ?? 'Unknown',
             });
             print('Yes button clicked outside radius');
           }
@@ -97,26 +106,30 @@ class NotificationService {
           await FirebaseFirestore.instance
               .collection('Records')
               .doc('Starting_time')
-              .collection('$currentMonth-$currentYear')
-              .doc('No-$currentMonth')
+              .collection('$currentMonth-$currentYear-$currentDay')
+              .doc('No-$currentDay')
               .collection('No')
               .add({
-            'userName': userName ?? 'Unknown',
-            'action': 'No im not at work',
             'timestamp': Timestamp.now(),
+            'action': 'No im not at work',
+            'dayOfWeek': currentDay,
+            'userEmail': userEmail ?? 'Unknown',
+            'userName': userName ?? 'Unknown',
           });
           print('No button clicked');
           // Save "No im not at work" with the current time to Firestore
           await FirebaseFirestore.instance
               .collection('Records')
               .doc('Starting_time')
-              .collection('$currentMonth-$currentYear')
-              .doc('No-$currentMonth')
+              .collection('$currentMonth-$currentYear-$currentDay')
+              .doc('No-$currentDay')
               .collection('No')
               .add({
-            'userName': userName ?? 'Unknown',
-            'action': 'No im not at work',
             'timestamp': Timestamp.now(),
+            'action': 'No im not at work',
+            'dayOfWeek': currentDay,
+            'userEmail': userEmail ?? 'Unknown',
+            'userName': userName ?? 'Unknown',
           });
           break;
         default:
