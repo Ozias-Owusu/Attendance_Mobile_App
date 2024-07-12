@@ -142,7 +142,9 @@ class _AuthPageState extends State<AuthPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     TextButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/password');
+                        },
                         child: const Text(
                           'Forgot Password',
                           style: TextStyle(fontWeight: FontWeight.bold),

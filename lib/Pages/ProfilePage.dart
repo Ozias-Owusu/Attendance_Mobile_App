@@ -31,9 +31,13 @@
 //   }
 // }
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
+import 'package:path/path.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -44,15 +48,53 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   File? _image;
+  String? _userName;
+  String? _userEmail;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadImage();
+    _loadUserDetails();
+  }
 
   Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    final pickedFile =
+        await ImagePicker().pickImage(source: ImageSource.gallery);
 
     if (pickedFile != null) {
       setState(() {
         _image = File(pickedFile.path);
       });
+      await _saveImage(_image!);
     }
+  }
+
+  Future<void> _saveImage(File image) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final directory = await getApplicationDocumentsDirectory();
+    final name = basename(image.path);
+    final localImage = await image.copy('${directory.path}/$name');
+    prefs.setString('profile_image', localImage.path);
+  }
+
+  Future<void> _loadImage() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? imagePath = prefs.getString('profile_image');
+
+    if (imagePath != null) {
+      setState(() {
+        _image = File(imagePath);
+      });
+    }
+  }
+
+  Future<void> _loadUserDetails() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _userName = prefs.getString('UserName');
+      _userEmail = prefs.getString('userEmail');
+    });
   }
 
   @override
@@ -71,20 +113,26 @@ class _ProfilePageState extends State<ProfilePage> {
                 backgroundImage: _image != null ? FileImage(_image!) : null,
                 child: _image == null
                     ? const Icon(
-                  Icons.camera_alt,
-                  size: 50,
-                  color: Colors.grey,
-                )
+                        Icons.camera_alt,
+                        size: 50,
+                        color: Colors.grey,
+                      )
                     : null,
               ),
             ),
             const SizedBox(height: 30),
-            const Column(
+            Column(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Text('Name: '),
-                SizedBox(height: 20),
-                Text('Email: '),
+                Text(
+                  'Name: ${_userName ?? 'Unknown'}',
+                  style: const TextStyle(fontSize: 18),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Email: ${_userEmail ?? 'Unknown'}',
+                  style: const TextStyle(fontSize: 18),
+                ),
               ],
             )
           ],
@@ -93,4 +141,3 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 }
-

@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
-// import 'package:firebase_database';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
@@ -46,6 +45,8 @@ class NotificationService {
       int currentYear = now.year;
       String currentDay =
           DateFormat('EEEE').format(now); // Get the day of the week
+      String currentDayNumber =
+          DateFormat('d').format(now); // Get the day number of the month
 
       // Check the actionId to determine which button was clicked
       switch (receivedAction.actionId) {
@@ -72,12 +73,11 @@ class NotificationService {
             await FirebaseFirestore.instance
                 .collection('Records')
                 .doc('Starting_time')
-                .collection('$currentMonth-$currentYear-$currentDay')
-                .doc('yes-$currentDay')
-                .collection('Yes')
+                .collection(
+                    '$currentDayNumber-$currentMonth-$currentYear {yes_Inside-$currentDay}')
                 .add({
               'timestamp': Timestamp.now(),
-              'action': 'Yes im at work',
+              'action': 'Yes I am at work',
               'dayOfWeek': currentDay,
               'userEmail': userEmail ?? 'Unknown',
               'userName': userName ?? 'Unknown',
@@ -88,12 +88,11 @@ class NotificationService {
             await FirebaseFirestore.instance
                 .collection('Records')
                 .doc('Starting_time')
-                .collection('$currentMonth-$currentYear-$currentDay')
-                .doc('Yes_Outside-$currentDay')
-                .collection('Yes_Outside')
+                .collection(
+                    '$currentDayNumber-$currentMonth-$currentYear {yes_Outside-$currentDay}')
                 .add({
               'timestamp': Timestamp.now(),
-              'action': 'No im not at work',
+              'action': 'No I am not at work(Outside)',
               'dayOfWeek': currentDay,
               'userEmail': userEmail ?? 'Unknown',
               'userName': userName ?? 'Unknown',
@@ -106,31 +105,28 @@ class NotificationService {
           await FirebaseFirestore.instance
               .collection('Records')
               .doc('Starting_time')
-              .collection('$currentMonth-$currentYear-$currentDay')
-              .doc('No-$currentDay')
-              .collection('No')
+              .collection(
+                  '$currentDayNumber-$currentMonth-$currentYear {no-$currentDay}')
               .add({
             'timestamp': Timestamp.now(),
-            'action': 'No im not at work',
+            'action': 'No I am not at work',
             'dayOfWeek': currentDay,
             'userEmail': userEmail ?? 'Unknown',
             'userName': userName ?? 'Unknown',
           });
           print('No button clicked');
-          // Save "No im not at work" with the current time to Firestore
-          await FirebaseFirestore.instance
-              .collection('Records')
-              .doc('Starting_time')
-              .collection('$currentMonth-$currentYear-$currentDay')
-              .doc('No-$currentDay')
-              .collection('No')
-              .add({
-            'timestamp': Timestamp.now(),
-            'action': 'No im not at work',
-            'dayOfWeek': currentDay,
-            'userEmail': userEmail ?? 'Unknown',
-            'userName': userName ?? 'Unknown',
-          });
+          // await FirebaseFirestore.instance
+          //     .collection('Records')
+          //     .doc('Starting_time')
+          //     .collection(
+          //         '$currentDayNumber-$currentMonth-$currentYear {no_option_selected-$currentDay}')
+          //     .add({
+          //   'timestamp': Timestamp.now(),
+          //   'action': 'No im not at work',
+          //   'dayOfWeek': currentDay,
+          //   'userEmail': userEmail ?? 'Unknown',
+          //   'userName': userName ?? 'Unknown',
+          // });
           break;
         default:
           print('Other action or notification clicked');

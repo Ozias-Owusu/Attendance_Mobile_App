@@ -36,23 +36,30 @@ class _HomePageState extends State<HomePage> {
       int currentMonth = now.month;
       int currentYear = now.year;
       String currentDay =
-      DateFormat('EEEE').format(now); // Get the day of the week
+          DateFormat('EEEE').format(now); // Get the day of the week
+      String currentDayNumber =
+          DateFormat('d').format(now); // Get the day number of the month
 
       // Fetching records for the current month and year
       QuerySnapshot yesRecordsSnapshot = await FirebaseFirestore.instance
           .collection('Records')
           .doc('Starting_time')
-          .collection('$currentMonth-$currentYear-$currentDay')
-          .doc('yes-$currentDay')
-          .collection('Yes')
+          .collection(
+              '$currentDayNumber-$currentMonth-$currentYear {yes_Inside-$currentDay}')
+          .get();
+
+      QuerySnapshot yesOutsideRecordsSnapshot = await FirebaseFirestore.instance
+          .collection('Records')
+          .doc('Starting_time')
+          .collection(
+              '$currentDayNumber-$currentMonth-$currentYear {yes_Outside-$currentDay}')
           .get();
 
       QuerySnapshot noRecordsSnapshot = await FirebaseFirestore.instance
           .collection('Records')
           .doc('Starting_time')
-          .collection('$currentMonth-$currentYear-$currentDay')
-          .doc('No-$currentDay')
-          .collection('No')
+          .collection(
+              '$currentDayNumber-$currentMonth-$currentYear {no-$currentDay}')
           .get();
 
       int tempYesInsideCount = 0;
@@ -60,17 +67,20 @@ class _HomePageState extends State<HomePage> {
       int tempNoCount = 0;
 
       // Processing Yes records
+      // Processing Yes records
       for (var doc in yesRecordsSnapshot.docs) {
         var data = doc.data() as Map<String, dynamic>;
-        if (data['action'] == 'Yes im at work') {
+        if (data['action'] == 'Yes I am at work') {
           tempYesInsideCount++;
-        } else {
+        } else if (data['action'] == 'No I am not at work (Outside)') {
           tempYesOutsideCount++;
+        } else if (data['action'] == 'No I am not at work') {
+          tempNoCount++;
         }
       }
 
       // Processing No records
-      tempNoCount = noRecordsSnapshot.size;
+      tempNoCount += noRecordsSnapshot.size;
 
       setState(() {
         yesInsideCount = tempYesInsideCount;
@@ -84,30 +94,6 @@ class _HomePageState extends State<HomePage> {
         isLoading = false;
       });
     }
-  }
-
-  String? _userName;
-  String? _userEmail;
-  String? _userPassword;
-
-  Future<void> _saveUserDetails() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _userName = prefs.getString('userName');
-      _userEmail = prefs.getString('userEmail');
-      _userPassword = prefs.getString('userPassword');
-    });
-  }
-
-  Future<void> _initializeWorkManager() async {
-    Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
-    Workmanager().registerPeriodicTask(
-      'dailyNotification',
-      'dailyNotificationTask',
-      frequency: const Duration(hours: 24),
-      initialDelay: const Duration(minutes: 1),
-      inputData: {},
-    );
   }
 
   Widget _buildIcon(String title) {
@@ -135,6 +121,30 @@ class _HomePageState extends State<HomePage> {
     return Icon(iconData, color: color, size: 24);
   }
 
+  Future<void> _initializeWorkManager() async {
+    Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
+    Workmanager().registerPeriodicTask(
+      'dailyNotification',
+      'dailyNotificationTask',
+      frequency: const Duration(hours: 24),
+      initialDelay: const Duration(minutes: 1),
+      inputData: {},
+    );
+  }
+
+  String? _userName;
+  String? _userEmail;
+  String? _userPassword;
+
+  Future<void> _saveUserDetails() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _userName = prefs.getString('userName');
+      _userEmail = prefs.getString('userEmail');
+      _userPassword = prefs.getString('userPassword');
+    });
+  }
+
   Widget _buildLegendItem(Color color, String text) {
     return Row(
       children: [
@@ -151,18 +161,19 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(appBar: AppBar(
-      automaticallyImplyLeading: false,
+    return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
         actions: [
-    IconButton(
-    icon:const Icon(Icons.settings),
-      onPressed: () {
-      Navigator.pushNamed(context, '/settings');
-
-      },
-    ),],
-      title:const Text('Home Page'),
-    ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.pushNamed(context, '/settings');
+            },
+          ),
+        ],
+        title: const Text('Home Page'),
+      ),
       body: isLoading
           ? const Center(
               child: CircularProgressIndicator(),
@@ -172,7 +183,7 @@ class _HomePageState extends State<HomePage> {
               child: Column(
                 children: [
                   Center(
-                    child:  Container(
+                    child: Container(
                       height: 300, // Adjust the height of the container
                       width: 300,
                       child: PieChart(
@@ -180,12 +191,14 @@ class _HomePageState extends State<HomePage> {
                           sections: [
                             PieChartSectionData(
                               color: Colors.green,
+                              value: yesInsideCount.toDouble(),
                               badgeWidget: _buildIcon('Yes (Inside)'),
                               badgePositionPercentageOffset: 0.7,
                               radius: 60,
                             ),
                             PieChartSectionData(
                               color: Colors.orange,
+                              value: yesOutsideCount.toDouble(),
                               badgeWidget: _buildIcon('Yes (Outside)'),
                               badgePositionPercentageOffset: 0.5,
                               radius: 50,
@@ -243,3 +256,9 @@ class ThemeProvider with ChangeNotifier {
     notifyListeners();
   }
 }
+// void callbackDispatcher() {
+//   Workmanager().executeTask((task, inputData) {
+//     // Your background task code here
+//     return Future.value(true);
+//   });
+// }

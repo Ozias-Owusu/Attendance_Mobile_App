@@ -1,5 +1,8 @@
+import 'package:attendance_mobile_app/Pages/ProfilePage.dart';
+import 'package:attendance_mobile_app/provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -9,9 +12,8 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-
   bool _notificationsEnabled = true;
-  bool _darkTheme = false;
+  bool _isDark = false;
 
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -49,7 +51,6 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -77,75 +78,92 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Settings',
-              style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            ListTile(
-              leading: const Icon(Icons.person, size: 30),
-              title: const Text('Profile', style: TextStyle(fontSize: 20)),
-              trailing: const Icon(Icons.arrow_forward_ios),
-              onTap: () {
-                // Navigate to Profile Page
-                Navigator.pushNamed(context, '/profile');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.email, size: 30),
-              title: const Text('Change Email', style: TextStyle(fontSize: 20)),
-              trailing: const Icon(Icons.arrow_forward_ios),
-              onTap: () {
-                // Navigate to Email Page
-                _showSnackBar('Email cannot be changed');
-                print('Email cannot be changed');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.lock, size: 30),
-              title:
-                  const Text('Change Password', style: TextStyle(fontSize: 20)),
-              trailing: const Icon(Icons.arrow_forward_ios),
-              onTap: () {
-                // Navigate to Password Page
-                Navigator.pushNamed(context, '/password');
-              },
-            ),
-            const Divider(),
-            const SizedBox(height: 10),
-            const Text(
-              'Notifications Settings',
-              style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            SwitchListTile(
-              title: const Text('Enable Notifications',
-                  style: TextStyle(fontSize: 20)),
-              value: _notificationsEnabled,
-              onChanged: (bool value) {
-                //  notification settings change
-                _confirmToggleNotifications(value);
-              },
-              secondary: const Icon(Icons.notifications, size: 30),
-            ),
-
-            SwitchListTile(
-              title: const Text('Theme', style: TextStyle(fontSize: 20)),
-              value: _darkTheme,
-              onChanged: (bool value) {
-                // push notification settings change
-
-              },
-              secondary: const Icon(Icons.dark_mode, size: 30),
-            ),
-          ],
-        ),
-      ),
+      body:
+          Consumer<UiProvider>(builder: (context, UiProvider notifier, child) {
+        return Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Settings',
+                  style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 20),
+                ListTile(
+                  leading: const Icon(Icons.person, size: 30),
+                  title: const Text('Profile', style: TextStyle(fontSize: 20)),
+                  trailing: const Icon(Icons.arrow_forward_ios),
+                  onTap: () {
+                    // Navigate to Profile Page
+                    // Navigator.pushNamed(context, '/profile');
+                    // void _showProfileDialog(BuildContext context) {
+                    showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return AlertDialog(
+                          content: const ProfilePage(),
+                          actions: [
+                            TextButton(
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                              },
+                              child: const Text('Close'),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                    // }
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.email, size: 30),
+                  title: const Text('Change Email',
+                      style: TextStyle(fontSize: 20)),
+                  trailing: const Icon(Icons.arrow_forward_ios),
+                  onTap: () {
+                    // Navigate to Email Page
+                    _showSnackBar('Email cannot be changed');
+                    print('Email cannot be changed');
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.lock, size: 30),
+                  title: const Text('Change Password',
+                      style: TextStyle(fontSize: 20)),
+                  trailing: const Icon(Icons.arrow_forward_ios),
+                  onTap: () {
+                    // Navigate to Password Page
+                    Navigator.pushNamed(context, '/password');
+                  },
+                ),
+                const Divider(),
+                const SizedBox(height: 10),
+                const Text(
+                  'Notifications Settings',
+                  style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 10),
+                SwitchListTile(
+                  title: const Text('Enable Notifications',
+                      style: TextStyle(fontSize: 20)),
+                  value: _notificationsEnabled,
+                  onChanged: (bool value) {
+                    //  notification settings change
+                    _confirmToggleNotifications(value);
+                  },
+                  secondary: const Icon(Icons.notifications, size: 30),
+                ),
+                SwitchListTile(
+                  title: const Text('Theme', style: TextStyle(fontSize: 20)),
+                  value: _isDark,
+                  onChanged: (bool value) => notifier.changeTheme(),
+                  secondary: const Icon(Icons.dark_mode, size: 30),
+                ),
+              ],
+            ));
+      }),
     );
   }
 }

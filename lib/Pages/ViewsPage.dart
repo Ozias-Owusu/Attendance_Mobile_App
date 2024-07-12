@@ -12,26 +12,63 @@ class ViewsPage extends StatelessWidget {
     int currentYear = now.year;
     String currentDay =
         DateFormat('EEEE').format(now); // Get the day of the week
+    String currentDayNumber =
+        DateFormat('d').format(now); // Get the day number of the month
+
     try {
       print('Fetching records for email: $email');
-      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+
+      // Fetch records from the four collections
+      final Future<QuerySnapshot> yesInsideRecordsSnapshot = FirebaseFirestore
+          .instance
           .collection('Records')
           .doc('Starting_time')
-          .collection('$currentMonth-$currentYear-$currentDay')
-          .doc('yes-$currentDay')
-          .collection('Yes')
+          .collection(
+              '$currentDayNumber-$currentMonth-$currentYear {yes_Inside-$currentDay}')
           .where('userEmail', isEqualTo: email)
           .get();
 
-      if (querySnapshot.docs.isEmpty) {
-        print('No records found for email: $email');
-      } else {
-        print('Records fetched successfully for email: $email');
-      }
+      final Future<QuerySnapshot> yesOutsideRecordsSnapshot = FirebaseFirestore
+          .instance
+          .collection('Records')
+          .doc('Starting_time')
+          .collection(
+              '$currentDayNumber-$currentMonth-$currentYear {yes_Outside-$currentDay}')
+          .where('userEmail', isEqualTo: email)
+          .get();
 
-      return querySnapshot.docs
-          .map((doc) => doc.data() as Map<String, dynamic>)
-          .toList();
+      final Future<QuerySnapshot> noRecordsSnapshot = FirebaseFirestore.instance
+          .collection('Records')
+          .doc('Starting_time')
+          .collection(
+              '$currentDayNumber-$currentMonth-$currentYear {no-$currentDay}')
+          .where('userEmail', isEqualTo: email)
+          .get();
+
+      final Future<QuerySnapshot> noOptionSelectedRecordsSnapshot =
+          FirebaseFirestore.instance
+              .collection('Records')
+              .doc('Starting_time')
+              .collection(
+                  '$currentDayNumber-$currentMonth-$currentYear {no_option_selected-$currentDay}')
+              .where('userEmail', isEqualTo: email)
+              .get();
+
+      // Wait for all the queries to complete and combine the results
+      final List<QuerySnapshot> snapshots = await Future.wait([
+        yesInsideRecordsSnapshot,
+        yesOutsideRecordsSnapshot,
+        noRecordsSnapshot,
+        noOptionSelectedRecordsSnapshot,
+      ]);
+
+      // Combine the records from all the snapshots
+      final List<Map<String, dynamic>> allRecords = [
+        for (final snapshot in snapshots)
+          ...snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>),
+      ];
+
+      return allRecords;
     } catch (e) {
       print('Error fetching records: $e');
       return [];
@@ -70,8 +107,9 @@ class ViewsPage extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text('Email: ${record['userEmail']}'),
+                            Text('Status: ${record['action']}'),
                             Text('Time: ${record['timestamp'].toDate()}'),
-                            Text('Day of Week: ${record['dayOfWeek']}'),
+                            // Text('Day of Week: ${record['dayOfWeek']}'),
                           ],
                         ),
                       );
