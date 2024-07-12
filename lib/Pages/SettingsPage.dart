@@ -9,6 +9,47 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
+
+  bool _notificationsEnabled = true;
+  bool _darkTheme = false;
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  Future<void> _confirmToggleNotifications(bool value) async {
+    bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Notifications'),
+          content: Text(value
+              ? 'Do you want to enable notifications?'
+              : 'Do you want to disable notifications?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed ?? false) {
+      setState(() {
+        _notificationsEnabled = value;
+      });
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -18,7 +59,7 @@ class _SettingsPageState extends State<SettingsPage> {
           onPressed: () {
             Navigator.pop(context);
           },
-          icon: Icon(Icons.arrow_back_ios),
+          icon: const Icon(Icons.arrow_back_ios),
         ),
         actions: [
           IconButton(
@@ -60,7 +101,8 @@ class _SettingsPageState extends State<SettingsPage> {
               title: const Text('Change Email', style: TextStyle(fontSize: 20)),
               trailing: const Icon(Icons.arrow_forward_ios),
               onTap: () {
-                // Navigate to Change Email Page
+                // Navigate to Email Page
+                _showSnackBar('Email cannot be changed');
                 print('Email cannot be changed');
               },
             ),
@@ -70,7 +112,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   const Text('Change Password', style: TextStyle(fontSize: 20)),
               trailing: const Icon(Icons.arrow_forward_ios),
               onTap: () {
-                // Navigate to Change Password Page
+                // Navigate to Password Page
                 Navigator.pushNamed(context, '/password');
               },
             ),
@@ -84,35 +126,20 @@ class _SettingsPageState extends State<SettingsPage> {
             SwitchListTile(
               title: const Text('Enable Notifications',
                   style: TextStyle(fontSize: 20)),
-              value: true,
+              value: _notificationsEnabled,
               onChanged: (bool value) {
-                // Handle notification settings change
+                //  notification settings change
+                _confirmToggleNotifications(value);
               },
               secondary: const Icon(Icons.notifications, size: 30),
             ),
-            SwitchListTile(
-              title: const Text('Email Notifications',
-                  style: TextStyle(fontSize: 20)),
-              value: false,
-              onChanged: (bool value) {
-                // Handle email notification settings change
-              },
-              secondary: const Icon(Icons.email, size: 30),
-            ),
-            SwitchListTile(
-              title: const Text('Push Notifications',
-                  style: TextStyle(fontSize: 20)),
-              value: true,
-              onChanged: (bool value) {
-                // Handle push notification settings change
-              },
-              secondary: const Icon(Icons.phone_android, size: 30),
-            ),
+
             SwitchListTile(
               title: const Text('Theme', style: TextStyle(fontSize: 20)),
-              value: false,
+              value: _darkTheme,
               onChanged: (bool value) {
-                // Handle push notification settings change
+                // push notification settings change
+
               },
               secondary: const Icon(Icons.dark_mode, size: 30),
             ),

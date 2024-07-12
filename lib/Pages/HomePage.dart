@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 
@@ -34,20 +35,24 @@ class _HomePageState extends State<HomePage> {
       DateTime now = DateTime.now();
       int currentMonth = now.month;
       int currentYear = now.year;
+      String currentDay =
+      DateFormat('EEEE').format(now); // Get the day of the week
 
       // Fetching records for the current month and year
       QuerySnapshot yesRecordsSnapshot = await FirebaseFirestore.instance
           .collection('Records')
           .doc('Starting_time')
-          .collection('$currentMonth-$currentYear')
-          .doc('yes-$currentMonth')
+          .collection('$currentMonth-$currentYear-$currentDay')
+          .doc('yes-$currentDay')
           .collection('Yes')
           .get();
 
       QuerySnapshot noRecordsSnapshot = await FirebaseFirestore.instance
           .collection('Records')
-          .doc('$currentMonth-$currentYear')
-          .collection('no')
+          .doc('Starting_time')
+          .collection('$currentMonth-$currentYear-$currentDay')
+          .doc('No-$currentDay')
+          .collection('No')
           .get();
 
       int tempYesInsideCount = 0;
@@ -175,14 +180,12 @@ class _HomePageState extends State<HomePage> {
                           sections: [
                             PieChartSectionData(
                               color: Colors.green,
-                              // value: yesInsideCount.toDouble(),
                               badgeWidget: _buildIcon('Yes (Inside)'),
                               badgePositionPercentageOffset: 0.7,
                               radius: 60,
                             ),
                             PieChartSectionData(
                               color: Colors.orange,
-                              // value: yesOutsideCount.toDouble(),
                               badgeWidget: _buildIcon('Yes (Outside)'),
                               badgePositionPercentageOffset: 0.5,
                               radius: 50,
@@ -227,5 +230,16 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     );
+  }
+}
+
+class ThemeProvider with ChangeNotifier {
+  bool _isDarkTheme = false;
+
+  bool get isDarkTheme => _isDarkTheme;
+
+  void toggleTheme() {
+    _isDarkTheme = !_isDarkTheme;
+    notifyListeners();
   }
 }

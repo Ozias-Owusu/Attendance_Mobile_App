@@ -1,4 +1,5 @@
 import 'package:attendance_mobile_app/Pages/noifications_service_new.dart';
+import 'package:attendance_mobile_app/Pages/password_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:timezone/data/latest.dart' as tz;
@@ -38,6 +39,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
+
     return MaterialApp(
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
@@ -49,6 +51,7 @@ class _MyAppState extends State<MyApp> {
         '/settings': (_) => const SettingsPage(),
         '/views': (_) => const ViewsPage(),
         '/splash': (_) => const Splashscreen(),
+        '/password': (_) => const PasswordPage(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/settings') {
