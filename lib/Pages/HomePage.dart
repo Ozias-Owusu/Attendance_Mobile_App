@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
@@ -20,14 +22,56 @@ class _HomePageState extends State<HomePage> {
   int noCount = 0;
   bool isLoading = true;
 
+  Position? _currentPosition;
+  String? _currentAddress;
+
   @override
   void initState() {
     super.initState();
     _saveUserDetails();
     _initializeWorkManager();
-    // NotificationService.showNotification(
-    //     'Attendance Notice', 'Are you at work?');
+    NotificationService.showNotification(
+        'Attendance Notice', 'Are you at work?');
+    _getCurrentLocation();
     fetchRecords();
+  }
+
+  Future<void> _getCurrentLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return Future.error('Location services are disabled.');
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return Future.error('Location permissions are denied');
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      return Future.error(
+          'Location permissions are permanently denied, we cannot request permissions.');
+    }
+
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+    setState(() {
+      _currentPosition = position;
+    });
+
+    // Use Geocoding to get the address
+    List<Placemark> placemarks =
+        await placemarkFromCoordinates(position.latitude, position.longitude);
+    Placemark place = placemarks[0];
+    setState(() {
+      _currentAddress =
+          "${place.locality}, ${place.postalCode}, ${place.country}";
+    });
   }
 
   Future<void> fetchRecords() async {
@@ -80,7 +124,7 @@ class _HomePageState extends State<HomePage> {
             tempNoCount++;
             break;
           default:
-          // Handle unexpected cases if necessary
+            // Handle unexpected cases if necessary
             break;
         }
       }
@@ -100,7 +144,6 @@ class _HomePageState extends State<HomePage> {
         isLoading = false;
       });
     }
-
   }
 
   Widget _buildIcon(String title) {
@@ -189,6 +232,21 @@ class _HomePageState extends State<HomePage> {
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 children: [
+                  if (_currentPosition != null && _currentAddress != null)
+                    Column(
+                      children: [
+                        Text(
+                          'Coordinates: ${_currentPosition!.latitude}, ${_currentPosition!.longitude}',
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Location: $_currentAddress',
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
                   Center(
                     child: Container(
                       height: 300, // Adjust the height of the container

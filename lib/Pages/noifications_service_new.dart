@@ -74,7 +74,7 @@ class NotificationService {
                 .collection('Records')
                 .doc('Starting_time')
                 .collection(
-                    '$currentDayNumber-$currentMonth-$currentYear {yes_Inside-$currentDay}')
+                    '$currentDayNumber-$currentMonth-$currentYear {yes_Inside}')
                 .add({
               'timestamp': Timestamp.now(),
               'action': 'Yes I am at work',
@@ -89,7 +89,7 @@ class NotificationService {
                 .collection('Records')
                 .doc('Starting_time')
                 .collection(
-                    '$currentDayNumber-$currentMonth-$currentYear {yes_Outside-$currentDay}')
+                    '$currentDayNumber-$currentMonth-$currentYear {yes_Outside}')
                 .add({
               'timestamp': Timestamp.now(),
               'action': 'No I am not at work(Outside)',
@@ -105,8 +105,7 @@ class NotificationService {
           await FirebaseFirestore.instance
               .collection('Records')
               .doc('Starting_time')
-              .collection(
-                  '$currentDayNumber-$currentMonth-$currentYear {no-$currentDay}')
+              .collection('$currentDayNumber-$currentMonth-$currentYear {no}')
               .add({
             'timestamp': Timestamp.now(),
             'action': 'No I am not at work',
@@ -233,18 +232,6 @@ void callbackDispatcher() {
           onDidReceiveNotificationResponse: (e) {
         print('object');
       });
-      flutterLocalNotificationsPlugin.show(
-          0,
-          'Title',
-          'body',
-          const NotificationDetails(
-              android: AndroidNotificationDetails('channelId', 'channelName',
-                  icon: "mipmap/ic_launcher", //add app icon here
-                  importance: Importance.high,
-                  actions: <AndroidNotificationAction>[
-                AndroidNotificationAction('Yes_Button', 'Yes'),
-                AndroidNotificationAction('No_Button', 'No'),
-              ])));
       print('ended');
       return Future.value(true);
     } catch (e) {
