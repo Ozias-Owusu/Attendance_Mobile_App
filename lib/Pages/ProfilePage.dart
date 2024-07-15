@@ -97,10 +97,37 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
+  void _showInfoDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Welcome'),
+          content: const Text('Hey, welcome to PAMA app'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(title: const Text('Profile'),
+      leading:const Icon(Icons.arrow_back_ios),
+      automaticallyImplyLeading: false,
+      actions: [
+        IconButton( onPressed: () {
+          _showInfoDialog(context);
+        }, icon:const Icon(Icons.info_outline),)
+      ],),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,

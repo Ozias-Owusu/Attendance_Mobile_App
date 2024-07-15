@@ -13,7 +13,6 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   bool _notificationsEnabled = true;
-  bool _isDark = false;
 
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -95,9 +94,6 @@ class _SettingsPageState extends State<SettingsPage> {
                   title: const Text('Profile', style: TextStyle(fontSize: 20)),
                   trailing: const Icon(Icons.arrow_forward_ios),
                   onTap: () {
-                    // Navigate to Profile Page
-                    // Navigator.pushNamed(context, '/profile');
-                    // void _showProfileDialog(BuildContext context) {
                     showDialog(
                       context: context,
                       builder: (BuildContext context) {
@@ -114,7 +110,6 @@ class _SettingsPageState extends State<SettingsPage> {
                         );
                       },
                     );
-                    // }
                   },
                 ),
                 ListTile(
@@ -157,7 +152,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 SwitchListTile(
                   title: const Text('Theme', style: TextStyle(fontSize: 20)),
-                  value: _isDark,
+                  value: notifier.isDark,
                   onChanged: (bool value) => notifier.changeTheme(),
                   secondary: const Icon(Icons.dark_mode, size: 30),
                 ),

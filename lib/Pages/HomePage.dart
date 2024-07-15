@@ -25,8 +25,8 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _saveUserDetails();
     _initializeWorkManager();
-    NotificationService.showNotification(
-        'Attendance Notice', 'Are you at work?');
+    // NotificationService.showNotification(
+    //     'Attendance Notice', 'Are you at work?');
     fetchRecords();
   }
 
@@ -66,20 +66,26 @@ class _HomePageState extends State<HomePage> {
       int tempYesOutsideCount = 0;
       int tempNoCount = 0;
 
-      // Processing Yes records
-      // Processing Yes records
+// Processing Yes records
       for (var doc in yesRecordsSnapshot.docs) {
         var data = doc.data() as Map<String, dynamic>;
-        if (data['action'] == 'Yes I am at work') {
-          tempYesInsideCount++;
-        } else if (data['action'] == 'No I am not at work (Outside)') {
-          tempYesOutsideCount++;
-        } else if (data['action'] == 'No I am not at work') {
-          tempNoCount++;
+        switch (data['action']) {
+          case 'Yes I am at work':
+            tempYesInsideCount++;
+            break;
+          case 'No I am not at work (Outside)':
+            tempYesOutsideCount++;
+            break;
+          case 'No I am not at work':
+            tempNoCount++;
+            break;
+          default:
+          // Handle unexpected cases if necessary
+            break;
         }
       }
 
-      // Processing No records
+// Processing No records
       tempNoCount += noRecordsSnapshot.size;
 
       setState(() {
@@ -94,6 +100,7 @@ class _HomePageState extends State<HomePage> {
         isLoading = false;
       });
     }
+
   }
 
   Widget _buildIcon(String title) {
