@@ -25,8 +25,10 @@ Future<void> main() async {
       );
   await Permission_Checker();
   await Permission_Checker_2();
-  await NotificationService.init();
   tz.initializeTimeZones();
+
+  NotificationService.init();
+
   runApp(const MyApp());
 }
 

@@ -120,14 +120,24 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile'),
-      leading:const Icon(Icons.arrow_back_ios),
-      automaticallyImplyLeading: false,
-      actions: [
-        IconButton( onPressed: () {
-          _showInfoDialog(context);
-        }, icon:const Icon(Icons.info_outline),)
-      ],),
+      appBar: AppBar(
+        title: const Text('Profile'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+        automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            onPressed: () {
+              _showInfoDialog(context);
+            },
+            icon: const Icon(Icons.info_outline),
+          )
+        ],
+      ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,

@@ -49,90 +49,252 @@ class NotificationService {
           DateFormat('d').format(now); // Get the day number of the month
 
       // Check the actionId to determine which button was clicked
-      switch (receivedAction.actionId) {
-        case 'Yes_Button':
-          // Get the user's current position
-          Position position = await Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.high,
-          );
-          // Define the target coordinate and radius
-          double targetLatitude = 5.6129311;
-          double targetLongitude = -0.1823302;
-          double radius = 100; // in meters
-
-          double distance = Geolocator.distanceBetween(
-            position.latitude,
-            position.longitude,
-            targetLatitude,
-            targetLongitude,
-          );
-
-          // Check if the user is within the specified radius
-          if (distance <= radius) {
-            // Save "Yes im at work" with the current time to Firestore
-            await FirebaseFirestore.instance
-                .collection('Records')
-                .doc('Starting_time')
-                .collection(
-                    '$currentDayNumber-$currentMonth-$currentYear {yes_Inside}')
-                .add({
-              'timestamp': Timestamp.now(),
-              'action': 'Yes I am at work',
-              'dayOfWeek': currentDay,
-              'userEmail': userEmail ?? 'Unknown',
-              'userName': userName ?? 'Unknown',
-            });
-            print('Yes button clicked inside radius');
-          } else {
-            // Save "Yes outside the geolocator radius" with the current user's time to Firestore
-            await FirebaseFirestore.instance
-                .collection('Records')
-                .doc('Starting_time')
-                .collection(
-                    '$currentDayNumber-$currentMonth-$currentYear {yes_Outside}')
-                .add({
-              'timestamp': Timestamp.now(),
-              'action': 'No I am not at work(Outside)',
-              'dayOfWeek': currentDay,
-              'userEmail': userEmail ?? 'Unknown',
-              'userName': userName ?? 'Unknown',
-            });
-            print('Yes button clicked outside radius');
+      //   switch (receivedAction.actionId) {
+      //     case 'Yes_Button':
+      //       // Get the user's current position
+      //       Position position = await Geolocator.getCurrentPosition(
+      //         desiredAccuracy: LocationAccuracy.high,
+      //       );
+      //       // Define the target coordinate and radius
+      //       double targetLatitude = 5.6129311;
+      //       double targetLongitude = -0.1823302;
+      //       double radius = 100; // in meters
+      //
+      //       double distance = Geolocator.distanceBetween(
+      //         position.latitude,
+      //         position.longitude,
+      //         targetLatitude,
+      //         targetLongitude,
+      //       );
+      //
+      //       // Check if the user is within the specified radius
+      //       if (distance <= radius) {
+      //         // Save "Yes im at work" with the current time to Firestore
+      //         await FirebaseFirestore.instance
+      //             .collection('Records')
+      //             .doc('Starting_time')
+      //             .collection(
+      //                 '$currentDayNumber-$currentMonth-$currentYear {yes_Inside}')
+      //             .add({
+      //           'timestamp': Timestamp.now(),
+      //           'action': 'Yes I am at work',
+      //           'dayOfWeek': currentDay,
+      //           'userEmail': userEmail ?? 'Unknown',
+      //           'userName': userName ?? 'Unknown',
+      //         });
+      //         print('Yes button clicked inside radius');
+      //       } else {
+      //         // Save "Yes outside the geolocator radius" with the current user's time to Firestore
+      //         await FirebaseFirestore.instance
+      //             .collection('Records')
+      //             .doc('Starting_time')
+      //             .collection(
+      //                 '$currentDayNumber-$currentMonth-$currentYear {yes_Outside}')
+      //             .add({
+      //           'timestamp': Timestamp.now(),
+      //           'action': 'No I am not at work(Outside)',
+      //           'dayOfWeek': currentDay,
+      //           'userEmail': userEmail ?? 'Unknown',
+      //           'userName': userName ?? 'Unknown',
+      //         });
+      //         print('Yes button clicked outside radius');
+      //       }
+      //       break;
+      //     case 'No_Button':
+      //       // Save "No action" with the current users time to Firestore
+      //       await FirebaseFirestore.instance
+      //           .collection('Records')
+      //           .doc('Starting_time')
+      //           .collection('$currentDayNumber-$currentMonth-$currentYear {no}')
+      //           .add({
+      //         'timestamp': Timestamp.now(),
+      //         'action': 'No I am not at work',
+      //         'dayOfWeek': currentDay,
+      //         'userEmail': userEmail ?? 'Unknown',
+      //         'userName': userName ?? 'Unknown',
+      //       });
+      //       print('No button clicked');
+      //       // await FirebaseFirestore.instance
+      //       //     .collection('Records')
+      //       //     .doc('Starting_time')
+      //       //     .collection(
+      //       //         '$currentDayNumber-$currentMonth-$currentYear {no_option_selected-$currentDay}')
+      //       //     .add({
+      //       //   'timestamp': Timestamp.now(),
+      //       //   'action': 'No im not at work',
+      //       //   'dayOfWeek': currentDay,
+      //       //   'userEmail': userEmail ?? 'Unknown',
+      //       //   'userName': userName ?? 'Unknown',
+      //       // });
+      //       break;
+      //     default:
+      //       print('Other action or notification clicked');
+      //   }
+      // } catch (e) {
+      //   print('Error in onActionReceive: $e');
+      // }
+      // }
+      switch (receivedAction.id) {
+        // Change to `id` instead of `actionId` to get the notification ID
+        case 0: // Notification ID for "Are you at work?"
+          switch (receivedAction.actionId) {
+            case 'Yes_Button':
+              // Handle "Yes" button for the 8 AM notification
+              await handleYesButtonAction(userName, userEmail, currentDay,
+                  currentDayNumber, currentMonth, currentYear);
+              break;
+            case 'No_Button':
+              // Handle "No" button for the 8 AM notification
+              await handleNoButtonAction(userName, userEmail, currentDay,
+                  currentDayNumber, currentMonth, currentYear);
+              break;
           }
           break;
-        case 'No_Button':
-          // Save "No action" with the current users time to Firestore
-          await FirebaseFirestore.instance
-              .collection('Records')
-              .doc('Starting_time')
-              .collection('$currentDayNumber-$currentMonth-$currentYear {no}')
-              .add({
-            'timestamp': Timestamp.now(),
-            'action': 'No I am not at work',
-            'dayOfWeek': currentDay,
-            'userEmail': userEmail ?? 'Unknown',
-            'userName': userName ?? 'Unknown',
-          });
-          print('No button clicked');
-          // await FirebaseFirestore.instance
-          //     .collection('Records')
-          //     .doc('Starting_time')
-          //     .collection(
-          //         '$currentDayNumber-$currentMonth-$currentYear {no_option_selected-$currentDay}')
-          //     .add({
-          //   'timestamp': Timestamp.now(),
-          //   'action': 'No im not at work',
-          //   'dayOfWeek': currentDay,
-          //   'userEmail': userEmail ?? 'Unknown',
-          //   'userName': userName ?? 'Unknown',
-          // });
+
+        case 1: // Notification ID for "Have you closed?"
+          switch (receivedAction.actionId) {
+            case 'Yes_Button':
+              // Handle "Yes" button for the 5 PM notification
+              await handleYesButtonActionAt5(userName, userEmail, currentDay,
+                  currentDayNumber, currentMonth, currentYear);
+              break;
+            case 'No_Button':
+              // Handle "No" button for the 5 PM notification
+              await handleNoButtonActionAt5(userName, userEmail, currentDay,
+                  currentDayNumber, currentMonth, currentYear);
+              break;
+          }
           break;
+
         default:
           print('Other action or notification clicked');
       }
     } catch (e) {
       print('Error in onActionReceive: $e');
     }
+  }
+
+  static Future<void> handleYesButtonAction(
+      String userName,
+      String userEmail,
+      String currentDay,
+      String currentDayNumber,
+      int currentMonth,
+      int currentYear) async {
+    // Get the user's current position
+    Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+    // Define the target coordinate and radius
+    double targetLatitude = 5.6129311;
+    double targetLongitude = -0.1823302;
+    double radius = 100; // in meters
+
+    double distance = Geolocator.distanceBetween(
+      position.latitude,
+      position.longitude,
+      targetLatitude,
+      targetLongitude,
+    );
+
+    // Check if the user is within the specified radius
+    if (distance <= radius) {
+      // Save "Yes im at work" with the current time to Firestore
+      await FirebaseFirestore.instance
+          .collection('Records')
+          .doc('Starting_time')
+          .collection(
+              '$currentDayNumber-$currentMonth-$currentYear {yes_Inside}')
+          .add({
+        'timestamp': Timestamp.now(),
+        'action': 'Yes I am at work',
+        'dayOfWeek': currentDay,
+        'userEmail': userEmail ?? 'Unknown',
+        'userName': userName ?? 'Unknown',
+      });
+      print('Yes button clicked inside radius');
+    } else {
+      // Save "Yes outside the geolocator radius" with the current user's time to Firestore
+      await FirebaseFirestore.instance
+          .collection('Records')
+          .doc('Starting_time')
+          .collection(
+              '$currentDayNumber-$currentMonth-$currentYear {yes_Outside}')
+          .add({
+        'timestamp': Timestamp.now(),
+        'action': 'No I am not at work(Outside)',
+        'dayOfWeek': currentDay,
+        'userEmail': userEmail ?? 'Unknown',
+        'userName': userName ?? 'Unknown',
+      });
+      print('Yes button clicked outside radius');
+    }
+  }
+
+  static Future<void> handleNoButtonAction(
+      String userName,
+      String userEmail,
+      String currentDay,
+      String currentDayNumber,
+      int currentMonth,
+      int currentYear) async {
+    // Save "No action" with the current users time to Firestore
+    await FirebaseFirestore.instance
+        .collection('Records')
+        .doc('Starting_time')
+        .collection('$currentDayNumber-$currentMonth-$currentYear {no}')
+        .add({
+      'timestamp': Timestamp.now(),
+      'action': 'No I am not at work',
+      'dayOfWeek': currentDay,
+      'userEmail': userEmail ?? 'Unknown',
+      'userName': userName ?? 'Unknown',
+    });
+    print('No button clicked');
+  }
+
+  static Future<void> handleYesButtonActionAt5(
+      String userName,
+      String userEmail,
+      String currentDay,
+      String currentDayNumber,
+      int currentMonth,
+      int currentYear) async {
+    // Save "Yes I have closed" with the current time to Firestore in a different collection
+    await FirebaseFirestore.instance
+        .collection('ClosingRecords')
+        .doc('Closing_time')
+        .collection('$currentDayNumber-$currentMonth-$currentYear {yes_Closed}')
+        .add({
+      'timestamp': Timestamp.now(),
+      'action': 'Yes I have closed',
+      'dayOfWeek': currentDay,
+      'userEmail': userEmail ?? 'Unknown',
+      'userName': userName ?? 'Unknown',
+    });
+    print('Yes button clicked at closing time');
+  }
+
+  static Future<void> handleNoButtonActionAt5(
+      String userName,
+      String userEmail,
+      String currentDay,
+      String currentDayNumber,
+      int currentMonth,
+      int currentYear) async {
+    // Save "No I have not closed" with the current time to Firestore in a different collection
+    await FirebaseFirestore.instance
+        .collection('ClosingRecords')
+        .doc('Closing_time')
+        .collection('$currentDayNumber-$currentMonth-$currentYear {no_Closed}')
+        .add({
+      'timestamp': Timestamp.now(),
+      'action': 'No I have not closed',
+      'dayOfWeek': currentDay,
+      'userEmail': userEmail ?? 'Unknown',
+      'userName': userName ?? 'Unknown',
+    });
+    print('No button clicked at closing time');
   }
 
   static Future<void> init() async {
@@ -163,7 +325,116 @@ class NotificationService {
         ?.requestExactAlarmsPermission();
   }
 
+//   static Future<void> showNotification(String title, String body) async {
+//     tz.TZDateTime _notificationAt8AM() {
+//       final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
+//       tz.TZDateTime scheduledDate =
+//           tz.TZDateTime(tz.local, now.year, now.month, now.day, 9, 35);
+//       if (scheduledDate.isBefore(now)) {
+//         scheduledDate = scheduledDate.add(const Duration(days: 1));
+//       }
+//       return scheduledDate;
+//     }
+//
+//     const NotificationDetails platformChannelSpecifics = NotificationDetails(
+//       // iOS: DarwinNotificationDetails(),
+//       android: AndroidNotificationDetails(
+//         "channelId",
+//         "channelName",
+//         importance: Importance.max,
+//         priority: Priority.high,
+//         icon: "mipmap/ic_launcher",
+//         actions: <AndroidNotificationAction>[
+//           AndroidNotificationAction('Yes_Button', 'Yes'),
+//           AndroidNotificationAction('No_Button', 'No'),
+//         ],
+//       ),
+//     );
+//     await flutterLocalNotificationsPlugin.show(
+//         0, title, body, platformChannelSpecifics);
+//
+//     await flutterLocalNotificationsPlugin.zonedSchedule(
+//       0,
+//       'Attendance Notice!',
+//       'Are you at work?',
+//       _notificationAt8AM(),
+//       platformChannelSpecifics,
+//       androidAllowWhileIdle: true,
+//       uiLocalNotificationDateInterpretation:
+//           UILocalNotificationDateInterpretation.absoluteTime,
+//       matchDateTimeComponents: DateTimeComponents.time,
+//     );
+//   }
+//
+//   static Future<void> showNotificationAt5(String title, String body) async {
+//     tz.TZDateTime _notificationAt8AM() {
+//       final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
+//       tz.TZDateTime scheduledDate =
+//           tz.TZDateTime(tz.local, now.year, now.month, now.day, 16, 30);
+//       if (scheduledDate.isBefore(now)) {
+//         scheduledDate = scheduledDate.add(const Duration(days: 1));
+//       }
+//       return scheduledDate;
+//     }
+//
+//     const NotificationDetails platformChannelSpecifics = NotificationDetails(
+//       // iOS: DarwinNotificationDetails(),
+//       android: AndroidNotificationDetails(
+//         "channelId",
+//         "channelName",
+//         importance: Importance.max,
+//         priority: Priority.high,
+//         icon: "mipmap/ic_launcher",
+//         actions: <AndroidNotificationAction>[
+//           AndroidNotificationAction('Yes_Button', 'Yes'),
+//           AndroidNotificationAction('No_Button', 'No'),
+//         ],
+//       ),
+//     );
+//     await flutterLocalNotificationsPlugin.show(
+//         0, title, body, platformChannelSpecifics);
+//
+//     await flutterLocalNotificationsPlugin.zonedSchedule(
+//       0,
+//       'Attendance Notice!',
+//       'Have you closed?',
+//       _notificationAt8AM(),
+//       platformChannelSpecifics,
+//       androidAllowWhileIdle: true,
+//       uiLocalNotificationDateInterpretation:
+//           UILocalNotificationDateInterpretation.absoluteTime,
+//       matchDateTimeComponents: DateTimeComponents.time,
+//     );
+//   }
+//
+//   Future<void> scheduleDailyNotifications() async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     bool? isNotificationScheduled =
+//         prefs.getBool('isScheduledNotificationActive') ?? false;
+//
+//     if (!isNotificationScheduled) {
+//       await showNotification('Attendance Notice', 'Are you at work?');
+//       await prefs.setBool('isScheduledNotificationActive', true);
+//     }
+//     const AndroidNotificationDetails androidPlatformChannelSpecifics =
+//         AndroidNotificationDetails(
+//             'daily_notification_channel_id', 'Daily Notifications',
+//             importance: Importance.max, priority: Priority.max);
+//     const NotificationDetails platformChannelSpecifics =
+//         NotificationDetails(android: androidPlatformChannelSpecifics);
+//   }
+// }
   static Future<void> showNotification(String title, String body) async {
+    tz.TZDateTime _notificationAt8AM() {
+      final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
+      tz.TZDateTime scheduledDate =
+          tz.TZDateTime(tz.local, now.year, now.month, now.day, 9, 35);
+      if (scheduledDate.isBefore(now)) {
+        scheduledDate = scheduledDate.add(const Duration(days: 1));
+      }
+      return scheduledDate;
+    }
+
     const NotificationDetails platformChannelSpecifics = NotificationDetails(
       // iOS: DarwinNotificationDetails(),
       android: AndroidNotificationDetails(
@@ -185,7 +456,7 @@ class NotificationService {
       0,
       'Attendance Notice!',
       'Are you at work?',
-      _nextInstanceOfEightAM(),
+      _notificationAt8AM(),
       platformChannelSpecifics,
       androidAllowWhileIdle: true,
       uiLocalNotificationDateInterpretation:
@@ -194,48 +465,65 @@ class NotificationService {
     );
   }
 
-  static tz.TZDateTime _nextInstanceOfEightAM() {
-    final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
-    tz.TZDateTime scheduledDate =
-        tz.TZDateTime(tz.local, now.year, now.month, now.day, 8);
-    if (scheduledDate.isBefore(now)) {
-      scheduledDate = scheduledDate.add(const Duration(days: 1));
+  static Future<void> showNotificationAt5(String title, String body) async {
+    tz.TZDateTime _notificationAt5PM() {
+      final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
+      tz.TZDateTime scheduledDate =
+          tz.TZDateTime(tz.local, now.year, now.month, now.day, 17, 0);
+      if (scheduledDate.isBefore(now)) {
+        scheduledDate = scheduledDate.add(const Duration(days: 1));
+      }
+      return scheduledDate;
     }
-    return scheduledDate;
+
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+      // iOS: DarwinNotificationDetails(),
+      android: AndroidNotificationDetails(
+        "channelId5",
+        "channelName5",
+        importance: Importance.max,
+        priority: Priority.high,
+        icon: "mipmap/ic_launcher",
+        actions: <AndroidNotificationAction>[
+          AndroidNotificationAction('Yes_Button', 'Yes'),
+          AndroidNotificationAction('No_Button', 'No'),
+        ],
+      ),
+    );
+    await flutterLocalNotificationsPlugin.show(
+        1, title, body, platformChannelSpecifics); // Notification ID set to 1
+
+    await flutterLocalNotificationsPlugin.zonedSchedule(
+      1, // Notification ID set to 1
+      'Attendance Notice!',
+      'Have you closed?',
+      _notificationAt5PM(),
+      platformChannelSpecifics,
+      androidAllowWhileIdle: true,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      matchDateTimeComponents: DateTimeComponents.time,
+    );
+  }
+
+  static void callbackDispatcher() {
+    Workmanager().executeTask((task, inputData) async {
+      await NotificationService.showNotification(
+        'Attendance Notice!',
+        'Are you at work?',
+      );
+      return Future.value(true);
+    });
   }
 }
 
-Future<void> scheduleDailyNotifications() async {
-  const AndroidNotificationDetails androidPlatformChannelSpecifics =
-      AndroidNotificationDetails(
-          'daily_notification_channel_id', 'Daily Notifications',
-          importance: Importance.max, priority: Priority.max);
-  const NotificationDetails platformChannelSpecifics =
-      NotificationDetails(android: androidPlatformChannelSpecifics);
-}
-
-@pragma(
-    'vm:entry-point') // Mandatory if the App is obfuscated or using Flutter 3.1+
+@pragma('vm:entry-point')
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     try {
-      print('started');
-      print(
-          "Native called background task: $task"); //simpleTask will be emitted here.
-      FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-          FlutterLocalNotificationsPlugin();
-      const AndroidInitializationSettings initializationSettingsAndroid =
-          AndroidInitializationSettings("mipmap/ic_launcher");
-      const InitializationSettings initializationSettings =
-          InitializationSettings(android: initializationSettingsAndroid);
-      await flutterLocalNotificationsPlugin.initialize(initializationSettings,
-          onDidReceiveNotificationResponse: (e) {
-        print('object');
-      });
-      print('ended');
       return Future.value(true);
     } catch (e) {
-      print(e);
+      print('Error in callbackDispatcher: $e');
       return Future.value(false);
     }
   });

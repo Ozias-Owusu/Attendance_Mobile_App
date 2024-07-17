@@ -1,16 +1,18 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:attendance_mobile_app/Pages/notification_service_new_2.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 
 import 'noifications_service_new.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({Key? key}) : super(key: key);
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -21,19 +23,41 @@ class _HomePageState extends State<HomePage> {
   int yesOutsideCount = 0;
   int noCount = 0;
   bool isLoading = true;
+  int _additionalTextIndex = 0; // Index to track which text to display
 
   Position? _currentPosition;
   String? _currentAddress;
 
+  String? _imagePath;
+
+  List<String> additionalTexts = [
+    'Customer Sensitivity',
+    'Leadership',
+    'Accountability',
+    'Speed',
+    'Shared Vision and Mindset',
+    'Innovation',
+    'Effectiveness',
+  ];
+
   @override
   void initState() {
     super.initState();
+    //
+    NotificationService.showNotificationAt5('title', '');
+    _loadProfileImage();
+    _loadAdditionalTextIndex(); // Load stored index on initialization
     _saveUserDetails();
     _initializeWorkManager();
-    NotificationService.showNotification(
-        'Attendance Notice', 'Are you at work?');
+    _initializeWorkManager_2();
+    NotificationService.flutterLocalNotificationsPlugin;
     _getCurrentLocation();
-    fetchRecords();
+    _loadRecordsFromSharedPreferences().then((records) {
+      _updateCounts(records);
+      setState(() {
+        isLoading = false;
+      });
+    });
   }
 
   Future<void> _getCurrentLocation() async {
@@ -74,76 +98,82 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  Future<void> fetchRecords() async {
-    try {
-      DateTime now = DateTime.now();
-      int currentMonth = now.month;
-      int currentYear = now.year;
-      String currentDay =
-          DateFormat('EEEE').format(now); // Get the day of the week
-      String currentDayNumber =
-          DateFormat('d').format(now); // Get the day number of the month
+  Future<void> _initializeWorkManager() async {
+    await NotificationService.showNotification('title', '');
+    await NotificationService.showNotificationAt5('title', '');
+    Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
+    Workmanager().registerPeriodicTask(
+      'dailyNotification',
+      'dailyNotificationTask',
+      frequency: const Duration(hours: 24),
+      initialDelay: const Duration(minutes: 1),
+      inputData: {},
+    );
+  }
 
-      // Fetching records for the current month and year
-      QuerySnapshot yesRecordsSnapshot = await FirebaseFirestore.instance
-          .collection('Records')
-          .doc('Starting_time')
-          .collection(
-              '$currentDayNumber-$currentMonth-$currentYear {yes_Inside-$currentDay}')
-          .get();
+  Future<void> _initializeWorkManager_2() async {
+    await NotificationService_2().scheduleDailyNotifications();
+    Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
+    Workmanager().registerPeriodicTask(
+      'dailyNotification_2',
+      'dailyNotificationTask_2',
+      frequency: const Duration(hours: 24),
+      initialDelay: const Duration(minutes: 1),
+      inputData: {},
+    );
+  }
 
-      QuerySnapshot yesOutsideRecordsSnapshot = await FirebaseFirestore.instance
-          .collection('Records')
-          .doc('Starting_time')
-          .collection(
-              '$currentDayNumber-$currentMonth-$currentYear {yes_Outside-$currentDay}')
-          .get();
+  String? _userName;
+  String? _userEmail;
+  String? _userPassword;
 
-      QuerySnapshot noRecordsSnapshot = await FirebaseFirestore.instance
-          .collection('Records')
-          .doc('Starting_time')
-          .collection(
-              '$currentDayNumber-$currentMonth-$currentYear {no-$currentDay}')
-          .get();
+  Future<void> _saveUserDetails() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _userName = prefs.getString('userName');
+      _userEmail = prefs.getString('userEmail');
+      _userPassword = prefs.getString('userPassword');
+    });
+  }
 
-      int tempYesInsideCount = 0;
-      int tempYesOutsideCount = 0;
-      int tempNoCount = 0;
-
-// Processing Yes records
-      for (var doc in yesRecordsSnapshot.docs) {
-        var data = doc.data() as Map<String, dynamic>;
-        switch (data['action']) {
-          case 'Yes I am at work':
-            tempYesInsideCount++;
-            break;
-          case 'No I am not at work (Outside)':
-            tempYesOutsideCount++;
-            break;
-          case 'No I am not at work':
-            tempNoCount++;
-            break;
-          default:
-            // Handle unexpected cases if necessary
-            break;
-        }
-      }
-
-// Processing No records
-      tempNoCount += noRecordsSnapshot.size;
-
-      setState(() {
-        yesInsideCount = tempYesInsideCount;
-        yesOutsideCount = tempYesOutsideCount;
-        noCount = tempNoCount;
-        isLoading = false;
-      });
-    } catch (e) {
-      print('Error fetching records: $e');
-      setState(() {
-        isLoading = false;
-      });
+  Future<List<Map<String, dynamic>>> _loadRecordsFromSharedPreferences() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? jsonString = prefs.getString('userRecords');
+    if (jsonString == null) {
+      return [];
+    } else {
+      List<dynamic> jsonList = jsonDecode(jsonString);
+      return jsonList.map((item) => Map<String, dynamic>.from(item)).toList();
     }
+  }
+
+  void _updateCounts(List<Map<String, dynamic>> records) {
+    int tempYesInsideCount = 0;
+    int tempYesOutsideCount = 0;
+    int tempNoCount = 0;
+
+    for (var record in records) {
+      switch (record['action']) {
+        case 'Yes I am at work':
+          tempYesInsideCount++;
+          break;
+        case 'No I am not at work (Outside)':
+          tempYesOutsideCount++;
+          break;
+        case 'No I am not at work':
+          tempNoCount++;
+          break;
+        default:
+          // Handle unexpected cases if necessary
+          break;
+      }
+    }
+
+    setState(() {
+      yesInsideCount = tempYesInsideCount;
+      yesOutsideCount = tempYesOutsideCount;
+      noCount = tempNoCount;
+    });
   }
 
   Widget _buildIcon(String title) {
@@ -171,30 +201,6 @@ class _HomePageState extends State<HomePage> {
     return Icon(iconData, color: color, size: 24);
   }
 
-  Future<void> _initializeWorkManager() async {
-    Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
-    Workmanager().registerPeriodicTask(
-      'dailyNotification',
-      'dailyNotificationTask',
-      frequency: const Duration(hours: 24),
-      initialDelay: const Duration(minutes: 1),
-      inputData: {},
-    );
-  }
-
-  String? _userName;
-  String? _userEmail;
-  String? _userPassword;
-
-  Future<void> _saveUserDetails() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _userName = prefs.getString('userName');
-      _userEmail = prefs.getString('userEmail');
-      _userPassword = prefs.getString('userPassword');
-    });
-  }
-
   Widget _buildLegendItem(Color color, String text) {
     return Row(
       children: [
@@ -209,16 +215,64 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Future<void> _loadAdditionalTextIndex() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _additionalTextIndex = prefs.getInt('additionalTextIndex') ?? 0;
+    });
+  }
+
+  Future<void> _saveAdditionalTextIndex(int newIndex) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('additionalTextIndex', newIndex);
+    setState(() {
+      _additionalTextIndex = newIndex;
+    });
+  }
+
+  Future<void> _loadProfileImage() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _imagePath = prefs.getString('profile_image');
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
         actions: [
+          _imagePath == null
+              ? IconButton(
+                  icon: const Icon(Icons.person),
+                  onPressed: () {
+                    // Handle icon press if needed
+                  },
+                )
+              : GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ImageScreen(_imagePath!),
+                      ),
+                    );
+                  },
+                  child: CircleAvatar(
+                    backgroundImage: FileImage(File(_imagePath!)),
+                    radius: 20,
+                  ),
+                ),
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
-              Navigator.pushNamed(context, '/settings');
+              Navigator.pushNamed(context, '/settings').then((_) {
+                // Navigate back from views page, increment additional text index
+                _saveAdditionalTextIndex(
+                    (_additionalTextIndex + 1) % additionalTexts.length);
+              });
+              ;
             },
           ),
         ],
@@ -228,71 +282,99 @@ class _HomePageState extends State<HomePage> {
           ? const Center(
               child: CircularProgressIndicator(),
             )
-          : Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  if (_currentPosition != null && _currentAddress != null)
-                    Column(
-                      children: [
-                        Text(
-                          'Coordinates: ${_currentPosition!.latitude}, ${_currentPosition!.longitude}',
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Location: $_currentAddress',
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                    ),
-                  Center(
-                    child: Container(
-                      height: 300, // Adjust the height of the container
-                      width: 300,
-                      child: PieChart(
-                        PieChartData(
-                          sections: [
-                            PieChartSectionData(
-                              color: Colors.green,
-                              value: yesInsideCount.toDouble(),
-                              badgeWidget: _buildIcon('Yes (Inside)'),
-                              badgePositionPercentageOffset: 0.7,
-                              radius: 60,
-                            ),
-                            PieChartSectionData(
-                              color: Colors.orange,
-                              value: yesOutsideCount.toDouble(),
-                              badgeWidget: _buildIcon('Yes (Outside)'),
-                              badgePositionPercentageOffset: 0.5,
-                              radius: 50,
-                            ),
-                            PieChartSectionData(
-                              color: Colors.red,
-                              value: noCount.toDouble(),
-                              badgeWidget: _buildIcon('No'),
-                              badgePositionPercentageOffset: 0.5,
-                              radius: 50,
-                            ),
-                          ],
-                          centerSpaceRadius: 50,
-                          sectionsSpace: 2,
+          : SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    if (_currentPosition != null && _currentAddress != null)
+                      Column(
+                        children: [
+                          Text(
+                            'Coordinates: ${_currentPosition!.latitude}, ${_currentPosition!.longitude}',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Location: $_currentAddress',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                      ),
+                    Center(
+                      child: Container(
+                        height: 300,
+                        width: 300,
+                        child: PieChart(
+                          PieChartData(
+                            sections: [
+                              PieChartSectionData(
+                                color: Colors.green,
+                                value: yesInsideCount.toDouble(),
+                                badgeWidget: _buildIcon('Yes (Inside)'),
+                                badgePositionPercentageOffset: 0.7,
+                                radius: 60,
+                              ),
+                              PieChartSectionData(
+                                color: Colors.orange,
+                                value: yesOutsideCount.toDouble(),
+                                badgeWidget: _buildIcon('Yes (Outside)'),
+                                badgePositionPercentageOffset: 0.5,
+                                radius: 50,
+                              ),
+                              PieChartSectionData(
+                                color: Colors.red,
+                                value: noCount.toDouble(),
+                                badgeWidget: _buildIcon('No'),
+                                badgePositionPercentageOffset: 0.5,
+                                radius: 50,
+                              ),
+                            ],
+                            centerSpaceRadius: 50,
+                            sectionsSpace: 2,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildLegendItem(Colors.green, 'Yes (Inside)'),
-                  _buildLegendItem(Colors.orange, 'Yes (Outside)'),
-                  _buildLegendItem(Colors.red, 'No'),
-                ],
+                    const SizedBox(height: 16),
+                    Column(
+                      children: [
+                        _buildLegendItem(Colors.green, 'Yes (Inside)'),
+                        _buildLegendItem(Colors.orange, 'Yes (Outside)'),
+                        _buildLegendItem(Colors.red, 'No'),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'CLASSIE',
+                      style: TextStyle(
+                          fontSize: 40,
+                          fontWeight: FontWeight.bold,
+                          fontStyle: FontStyle.italic),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      _additionalTextIndex < additionalTexts.length
+                          ? additionalTexts[_additionalTextIndex]
+                          : '',
+                      style: const TextStyle(
+                        fontSize: 20,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
       floatingActionButton: FloatingActionButton(
         splashColor: Colors.purple,
         onPressed: () {
-          Navigator.pushNamed(context, '/views');
+          Navigator.pushNamed(context, '/views').then((_) {
+            // Navigate back from views page, increment additional text index
+            _saveAdditionalTextIndex(
+                (_additionalTextIndex + 1) % additionalTexts.length);
+          });
         },
         child: const Column(
           children: [
@@ -321,6 +403,30 @@ class ThemeProvider with ChangeNotifier {
     notifyListeners();
   }
 }
+
+class ImageScreen extends StatelessWidget {
+  final String imagePath;
+
+  ImageScreen(this.imagePath);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        leading: IconButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            icon: const Icon(Icons.arrow_back_ios)),
+      ),
+      body: Center(
+        child: Image.file(File(imagePath)),
+      ),
+    );
+  }
+}
+
 // void callbackDispatcher() {
 //   Workmanager().executeTask((task, inputData) {
 //     // Your background task code here
