@@ -2272,3 +2272,114 @@
 //     print('Error in onActionReceive: $e');
 //   }
 // }
+//   static Future<void> showNotification(String title, String body) async {
+//     tz.TZDateTime _notificationAt8AM() {
+//       final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
+//       tz.TZDateTime scheduledDate =
+//           tz.TZDateTime(tz.local, now.year, now.month, now.day, 9, 35);
+//       if (scheduledDate.isBefore(now)) {
+//         scheduledDate = scheduledDate.add(const Duration(days: 1));
+//       }
+//       return scheduledDate;
+//     }
+//
+//     const NotificationDetails platformChannelSpecifics = NotificationDetails(
+//       // iOS: DarwinNotificationDetails(),
+//       android: AndroidNotificationDetails(
+//         "channelId",
+//         "channelName",
+//         importance: Importance.max,
+//         priority: Priority.high,
+//         icon: "mipmap/ic_launcher",
+//         actions: <AndroidNotificationAction>[
+//           AndroidNotificationAction('Yes_Button', 'Yes'),
+//           AndroidNotificationAction('No_Button', 'No'),
+//         ],
+//       ),
+//     );
+//     await flutterLocalNotificationsPlugin.show(
+//         0, title, body, platformChannelSpecifics);
+//
+//     await flutterLocalNotificationsPlugin.zonedSchedule(
+//       0,
+//       'Attendance Notice!',
+//       'Are you at work?',
+//       _notificationAt8AM(),
+//       platformChannelSpecifics,
+//       androidAllowWhileIdle: true,
+//       uiLocalNotificationDateInterpretation:
+//           UILocalNotificationDateInterpretation.absoluteTime,
+//       matchDateTimeComponents: DateTimeComponents.time,
+//     );
+//   }
+//
+//   static Future<void> showNotificationAt5(String title, String body) async {
+//     tz.TZDateTime _notificationAt8AM() {
+//       final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
+//       tz.TZDateTime scheduledDate =
+//           tz.TZDateTime(tz.local, now.year, now.month, now.day, 16, 30);
+//       if (scheduledDate.isBefore(now)) {
+//         scheduledDate = scheduledDate.add(const Duration(days: 1));
+//       }
+//       return scheduledDate;
+//     }
+//
+//     const NotificationDetails platformChannelSpecifics = NotificationDetails(
+//       // iOS: DarwinNotificationDetails(),
+//       android: AndroidNotificationDetails(
+//         "channelId",
+//         "channelName",
+//         importance: Importance.max,
+//         priority: Priority.high,
+//         icon: "mipmap/ic_launcher",
+//         actions: <AndroidNotificationAction>[
+//           AndroidNotificationAction('Yes_Button', 'Yes'),
+//           AndroidNotificationAction('No_Button', 'No'),
+//         ],
+//       ),
+//     );
+//     await flutterLocalNotificationsPlugin.show(
+//         0, title, body, platformChannelSpecifics);
+//
+//     await flutterLocalNotificationsPlugin.zonedSchedule(
+//       0,
+//       'Attendance Notice!',
+//       'Have you closed?',
+//       _notificationAt8AM(),
+//       platformChannelSpecifics,
+//       androidAllowWhileIdle: true,
+//       uiLocalNotificationDateInterpretation:
+//           UILocalNotificationDateInterpretation.absoluteTime,
+//       matchDateTimeComponents: DateTimeComponents.time,
+//     );
+//   }
+//
+//   Future<void> scheduleDailyNotifications() async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     bool? isNotificationScheduled =
+//         prefs.getBool('isScheduledNotificationActive') ?? false;
+//
+//     if (!isNotificationScheduled) {
+//       await showNotification('Attendance Notice', 'Are you at work?');
+//       await prefs.setBool('isScheduledNotificationActive', true);
+//     }
+//     const AndroidNotificationDetails androidPlatformChannelSpecifics =
+//         AndroidNotificationDetails(
+//             'daily_notification_channel_id', 'Daily Notifications',
+//             importance: Importance.max, priority: Priority.max);
+//     const NotificationDetails platformChannelSpecifics =
+//         NotificationDetails(android: androidPlatformChannelSpecifics);
+//   }
+// }
+// Check if notifications have been scheduled
+// SharedPreferences prefs = await SharedPreferences.getInstance();
+// bool notificationsScheduled =
+//     prefs.getBool('notificationsScheduled') ?? false;
+//
+// if (!notificationsScheduled) {
+//   await showNotification('title', 'Are you at work?');
+//   await showNotificationAt5('title', 'Have you closed?');
+//
+//   // Set the flag to indicate that notifications have been scheduled
+//   await prefs.setBool('notificationsScheduled', true);
+// }

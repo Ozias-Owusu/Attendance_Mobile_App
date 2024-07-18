@@ -323,112 +323,47 @@ class NotificationService {
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()
         ?.requestExactAlarmsPermission();
+
+    // Schedule background tasks for notifications
+    await Workmanager().initialize(
+      callbackDispatcher,
+      isInDebugMode: false,
+    );
+
+    await Workmanager().registerPeriodicTask(
+      "work_8_am",
+      "work_8_am",
+      frequency: const Duration(hours: 24),
+      initialDelay: const Duration(seconds: 10),
+      constraints: Constraints(
+        networkType: NetworkType.connected,
+        requiresBatteryNotLow: false,
+        requiresCharging: false,
+        requiresDeviceIdle: false,
+        requiresStorageNotLow: false,
+      ),
+    );
+
+    await Workmanager().registerPeriodicTask(
+      "work_5_pm",
+      "work_5_pm",
+      frequency: const Duration(hours: 24),
+      initialDelay: const Duration(seconds: 10),
+      constraints: Constraints(
+        networkType: NetworkType.connected,
+        requiresBatteryNotLow: false,
+        requiresCharging: false,
+        requiresDeviceIdle: false,
+        requiresStorageNotLow: false,
+      ),
+    );
   }
 
-//   static Future<void> showNotification(String title, String body) async {
-//     tz.TZDateTime _notificationAt8AM() {
-//       final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
-//       tz.TZDateTime scheduledDate =
-//           tz.TZDateTime(tz.local, now.year, now.month, now.day, 9, 35);
-//       if (scheduledDate.isBefore(now)) {
-//         scheduledDate = scheduledDate.add(const Duration(days: 1));
-//       }
-//       return scheduledDate;
-//     }
-//
-//     const NotificationDetails platformChannelSpecifics = NotificationDetails(
-//       // iOS: DarwinNotificationDetails(),
-//       android: AndroidNotificationDetails(
-//         "channelId",
-//         "channelName",
-//         importance: Importance.max,
-//         priority: Priority.high,
-//         icon: "mipmap/ic_launcher",
-//         actions: <AndroidNotificationAction>[
-//           AndroidNotificationAction('Yes_Button', 'Yes'),
-//           AndroidNotificationAction('No_Button', 'No'),
-//         ],
-//       ),
-//     );
-//     await flutterLocalNotificationsPlugin.show(
-//         0, title, body, platformChannelSpecifics);
-//
-//     await flutterLocalNotificationsPlugin.zonedSchedule(
-//       0,
-//       'Attendance Notice!',
-//       'Are you at work?',
-//       _notificationAt8AM(),
-//       platformChannelSpecifics,
-//       androidAllowWhileIdle: true,
-//       uiLocalNotificationDateInterpretation:
-//           UILocalNotificationDateInterpretation.absoluteTime,
-//       matchDateTimeComponents: DateTimeComponents.time,
-//     );
-//   }
-//
-//   static Future<void> showNotificationAt5(String title, String body) async {
-//     tz.TZDateTime _notificationAt8AM() {
-//       final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
-//       tz.TZDateTime scheduledDate =
-//           tz.TZDateTime(tz.local, now.year, now.month, now.day, 16, 30);
-//       if (scheduledDate.isBefore(now)) {
-//         scheduledDate = scheduledDate.add(const Duration(days: 1));
-//       }
-//       return scheduledDate;
-//     }
-//
-//     const NotificationDetails platformChannelSpecifics = NotificationDetails(
-//       // iOS: DarwinNotificationDetails(),
-//       android: AndroidNotificationDetails(
-//         "channelId",
-//         "channelName",
-//         importance: Importance.max,
-//         priority: Priority.high,
-//         icon: "mipmap/ic_launcher",
-//         actions: <AndroidNotificationAction>[
-//           AndroidNotificationAction('Yes_Button', 'Yes'),
-//           AndroidNotificationAction('No_Button', 'No'),
-//         ],
-//       ),
-//     );
-//     await flutterLocalNotificationsPlugin.show(
-//         0, title, body, platformChannelSpecifics);
-//
-//     await flutterLocalNotificationsPlugin.zonedSchedule(
-//       0,
-//       'Attendance Notice!',
-//       'Have you closed?',
-//       _notificationAt8AM(),
-//       platformChannelSpecifics,
-//       androidAllowWhileIdle: true,
-//       uiLocalNotificationDateInterpretation:
-//           UILocalNotificationDateInterpretation.absoluteTime,
-//       matchDateTimeComponents: DateTimeComponents.time,
-//     );
-//   }
-//
-//   Future<void> scheduleDailyNotifications() async {
-//     SharedPreferences prefs = await SharedPreferences.getInstance();
-//     bool? isNotificationScheduled =
-//         prefs.getBool('isScheduledNotificationActive') ?? false;
-//
-//     if (!isNotificationScheduled) {
-//       await showNotification('Attendance Notice', 'Are you at work?');
-//       await prefs.setBool('isScheduledNotificationActive', true);
-//     }
-//     const AndroidNotificationDetails androidPlatformChannelSpecifics =
-//         AndroidNotificationDetails(
-//             'daily_notification_channel_id', 'Daily Notifications',
-//             importance: Importance.max, priority: Priority.max);
-//     const NotificationDetails platformChannelSpecifics =
-//         NotificationDetails(android: androidPlatformChannelSpecifics);
-//   }
-// }
-  static Future<void> showNotification(String title, String body) async {
+  static Future showNotification(String title, String body) async {
     tz.TZDateTime _notificationAt8AM() {
       final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
       tz.TZDateTime scheduledDate =
-          tz.TZDateTime(tz.local, now.year, now.month, now.day, 9, 35);
+          tz.TZDateTime(tz.local, now.year, now.month, now.day, 8);
       if (scheduledDate.isBefore(now)) {
         scheduledDate = scheduledDate.add(const Duration(days: 1));
       }
@@ -454,8 +389,8 @@ class NotificationService {
 
     await flutterLocalNotificationsPlugin.zonedSchedule(
       0,
-      'Attendance Notice!',
-      'Are you at work?',
+      title,
+      body,
       _notificationAt8AM(),
       platformChannelSpecifics,
       androidAllowWhileIdle: true,
@@ -469,7 +404,7 @@ class NotificationService {
     tz.TZDateTime _notificationAt5PM() {
       final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
       tz.TZDateTime scheduledDate =
-          tz.TZDateTime(tz.local, now.year, now.month, now.day, 17, 0);
+          tz.TZDateTime(tz.local, now.year, now.month, now.day, 17);
       if (scheduledDate.isBefore(now)) {
         scheduledDate = scheduledDate.add(const Duration(days: 1));
       }
@@ -495,8 +430,8 @@ class NotificationService {
 
     await flutterLocalNotificationsPlugin.zonedSchedule(
       1, // Notification ID set to 1
-      'Attendance Notice!',
-      'Have you closed?',
+      title,
+      body,
       _notificationAt5PM(),
       platformChannelSpecifics,
       androidAllowWhileIdle: true,
@@ -505,27 +440,40 @@ class NotificationService {
       matchDateTimeComponents: DateTimeComponents.time,
     );
   }
-
-  static void callbackDispatcher() {
-    Workmanager().executeTask((task, inputData) async {
-      await NotificationService.showNotification(
-        'Attendance Notice!',
-        'Are you at work?',
-      );
-      return Future.value(true);
-    });
-  }
 }
+
+// @pragma("vm:entry-point")
+// void callbackDispatcher() {
+//   Workmanager().executeTask((task, inputData) async {
+//     switch (task) {
+//       case "work_hourly":
+//         await Firebase.initializeApp();
+//         NotificationService.showNotification(
+//             "Attendance Notice!", "Are you at work?");
+//         NotificationService.showNotificationAt5(
+//             "Attendance Notice!", "Have you closed?");
+//         break;
+//     }
+//     return Future.value(true);
+//   });
+// }
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
-    try {
-      return Future.value(true);
-    } catch (e) {
-      print('Error in callbackDispatcher: $e');
-      return Future.value(false);
+    switch (task) {
+      case "work_8_am":
+        await NotificationService.showNotification(
+            "Attendance Notice!", "Are you at work?");
+        break;
+      case "work_5_pm":
+        await NotificationService.showNotificationAt5(
+            "Attendance Notice!", "Have you closed?");
+        break;
+      default:
+        break;
     }
+    return Future.value(true);
   });
 }
 

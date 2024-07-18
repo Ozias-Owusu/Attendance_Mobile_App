@@ -1,15 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:attendance_mobile_app/Pages/notification_service_new_2.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:workmanager/workmanager.dart';
-
-import 'noifications_service_new.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -43,14 +39,9 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    //
-    NotificationService.showNotificationAt5('title', '');
     _loadProfileImage();
     _loadAdditionalTextIndex(); // Load stored index on initialization
     _saveUserDetails();
-    _initializeWorkManager();
-    _initializeWorkManager_2();
-    NotificationService.flutterLocalNotificationsPlugin;
     _getCurrentLocation();
     _loadRecordsFromSharedPreferences().then((records) {
       _updateCounts(records);
@@ -98,30 +89,30 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  Future<void> _initializeWorkManager() async {
-    await NotificationService.showNotification('title', '');
-    await NotificationService.showNotificationAt5('title', '');
-    Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
-    Workmanager().registerPeriodicTask(
-      'dailyNotification',
-      'dailyNotificationTask',
-      frequency: const Duration(hours: 24),
-      initialDelay: const Duration(minutes: 1),
-      inputData: {},
-    );
-  }
+  // Future<void> _initializeWorkManager() async {
+  //   // Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
+  //   Workmanager().registerPeriodicTask(
+  //     'dailyNotification',
+  //     'dailyNotificationTask',
+  //     frequency: const Duration(hours: 24),
+  //     initialDelay: const Duration(minutes: 1),
+  //     inputData: {},
+  //   );
+  // }
 
-  Future<void> _initializeWorkManager_2() async {
-    await NotificationService_2().scheduleDailyNotifications();
-    Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
-    Workmanager().registerPeriodicTask(
-      'dailyNotification_2',
-      'dailyNotificationTask_2',
-      frequency: const Duration(hours: 24),
-      initialDelay: const Duration(minutes: 1),
-      inputData: {},
-    );
-  }
+  // Future<void> _initializeWorkManager_2() async {
+  //   // await NotificationService.showNotificationAt5(
+  //   //     'Attendance Notice!', 'Have you closed? ');
+  //   await NotificationService_2().scheduleDailyNotifications();
+  //   // Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
+  //   Workmanager().registerPeriodicTask(
+  //     'dailyNotification_2',
+  //     'dailyNotificationTask_2',
+  //     frequency: const Duration(hours: 24),
+  //     initialDelay: const Duration(minutes: 1),
+  //     inputData: {},
+  //   );
+  // }
 
   String? _userName;
   String? _userEmail;

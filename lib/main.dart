@@ -4,8 +4,8 @@ import 'package:attendance_mobile_app/provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tz;
-import 'package:workmanager/workmanager.dart';
 
 import 'Pages/AuthPage.dart';
 import 'Pages/HomePage.dart';
@@ -20,16 +20,33 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  Workmanager().initialize(
-      callbackDispatcher // The top level function, aka callbackDispatcher
-      );
   await Permission_Checker();
   await Permission_Checker_2();
   tz.initializeTimeZones();
 
-  NotificationService.init();
+  initServices();
 
   runApp(const MyApp());
+}
+
+void initServices() async {
+  await NotificationService.init();
+
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  bool notificationsScheduled =
+      prefs.getBool('notificationsScheduled') ?? false;
+
+  if (!notificationsScheduled) {
+    await NotificationService.showNotification(
+        "Attendance Notice!", "Are you at work?");
+    await NotificationService.showNotificationAt5(
+        "Attendance Notice!", "Have you closed?");
+
+    await prefs.setBool('notificationsScheduled', true);
+    print("Notifications scheduled.");
+  } else {
+    print("Notifications already scheduled.");
+  }
 }
 
 final navigatorKey = GlobalKey<NavigatorState>();
