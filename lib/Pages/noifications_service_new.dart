@@ -48,92 +48,6 @@ class NotificationService {
       String currentDayNumber =
           DateFormat('d').format(now); // Get the day number of the month
 
-      // Check the actionId to determine which button was clicked
-      //   switch (receivedAction.actionId) {
-      //     case 'Yes_Button':
-      //       // Get the user's current position
-      //       Position position = await Geolocator.getCurrentPosition(
-      //         desiredAccuracy: LocationAccuracy.high,
-      //       );
-      //       // Define the target coordinate and radius
-      //       double targetLatitude = 5.6129311;
-      //       double targetLongitude = -0.1823302;
-      //       double radius = 100; // in meters
-      //
-      //       double distance = Geolocator.distanceBetween(
-      //         position.latitude,
-      //         position.longitude,
-      //         targetLatitude,
-      //         targetLongitude,
-      //       );
-      //
-      //       // Check if the user is within the specified radius
-      //       if (distance <= radius) {
-      //         // Save "Yes im at work" with the current time to Firestore
-      //         await FirebaseFirestore.instance
-      //             .collection('Records')
-      //             .doc('Starting_time')
-      //             .collection(
-      //                 '$currentDayNumber-$currentMonth-$currentYear {yes_Inside}')
-      //             .add({
-      //           'timestamp': Timestamp.now(),
-      //           'action': 'Yes I am at work',
-      //           'dayOfWeek': currentDay,
-      //           'userEmail': userEmail ?? 'Unknown',
-      //           'userName': userName ?? 'Unknown',
-      //         });
-      //         print('Yes button clicked inside radius');
-      //       } else {
-      //         // Save "Yes outside the geolocator radius" with the current user's time to Firestore
-      //         await FirebaseFirestore.instance
-      //             .collection('Records')
-      //             .doc('Starting_time')
-      //             .collection(
-      //                 '$currentDayNumber-$currentMonth-$currentYear {yes_Outside}')
-      //             .add({
-      //           'timestamp': Timestamp.now(),
-      //           'action': 'No I am not at work(Outside)',
-      //           'dayOfWeek': currentDay,
-      //           'userEmail': userEmail ?? 'Unknown',
-      //           'userName': userName ?? 'Unknown',
-      //         });
-      //         print('Yes button clicked outside radius');
-      //       }
-      //       break;
-      //     case 'No_Button':
-      //       // Save "No action" with the current users time to Firestore
-      //       await FirebaseFirestore.instance
-      //           .collection('Records')
-      //           .doc('Starting_time')
-      //           .collection('$currentDayNumber-$currentMonth-$currentYear {no}')
-      //           .add({
-      //         'timestamp': Timestamp.now(),
-      //         'action': 'No I am not at work',
-      //         'dayOfWeek': currentDay,
-      //         'userEmail': userEmail ?? 'Unknown',
-      //         'userName': userName ?? 'Unknown',
-      //       });
-      //       print('No button clicked');
-      //       // await FirebaseFirestore.instance
-      //       //     .collection('Records')
-      //       //     .doc('Starting_time')
-      //       //     .collection(
-      //       //         '$currentDayNumber-$currentMonth-$currentYear {no_option_selected-$currentDay}')
-      //       //     .add({
-      //       //   'timestamp': Timestamp.now(),
-      //       //   'action': 'No im not at work',
-      //       //   'dayOfWeek': currentDay,
-      //       //   'userEmail': userEmail ?? 'Unknown',
-      //       //   'userName': userName ?? 'Unknown',
-      //       // });
-      //       break;
-      //     default:
-      //       print('Other action or notification clicked');
-      //   }
-      // } catch (e) {
-      //   print('Error in onActionReceive: $e');
-      // }
-      // }
       switch (receivedAction.id) {
         // Change to `id` instead of `actionId` to get the notification ID
         case 0: // Notification ID for "Are you at work?"
@@ -206,7 +120,7 @@ class NotificationService {
           .collection(
               '$currentDayNumber-$currentMonth-$currentYear {yes_Inside}')
           .add({
-        'timestamp': Timestamp.now(),
+        'timestamp': Timestamp.fromDate(DateTime.now().toUtc()),
         'action': 'Yes I am at work',
         'dayOfWeek': currentDay,
         'userEmail': userEmail ?? 'Unknown',
@@ -221,7 +135,7 @@ class NotificationService {
           .collection(
               '$currentDayNumber-$currentMonth-$currentYear {yes_Outside}')
           .add({
-        'timestamp': Timestamp.now(),
+        'timestamp': Timestamp.fromDate(DateTime.now().toUtc()),
         'action': 'No I am not at work(Outside)',
         'dayOfWeek': currentDay,
         'userEmail': userEmail ?? 'Unknown',
@@ -244,7 +158,7 @@ class NotificationService {
         .doc('Starting_time')
         .collection('$currentDayNumber-$currentMonth-$currentYear {no}')
         .add({
-      'timestamp': Timestamp.now(),
+      'timestamp': Timestamp.fromDate(DateTime.now().toUtc()),
       'action': 'No I am not at work',
       'dayOfWeek': currentDay,
       'userEmail': userEmail ?? 'Unknown',
@@ -266,7 +180,7 @@ class NotificationService {
         .doc('Closing_time')
         .collection('$currentDayNumber-$currentMonth-$currentYear {yes_Closed}')
         .add({
-      'timestamp': Timestamp.now(),
+      'timestamp': Timestamp.fromDate(DateTime.now().toUtc()),
       'action': 'Yes I have closed',
       'dayOfWeek': currentDay,
       'userEmail': userEmail ?? 'Unknown',
@@ -288,7 +202,7 @@ class NotificationService {
         .doc('Closing_time')
         .collection('$currentDayNumber-$currentMonth-$currentYear {no_Closed}')
         .add({
-      'timestamp': Timestamp.now(),
+      'timestamp': Timestamp.fromDate(DateTime.now().toUtc()),
       'action': 'No I have not closed',
       'dayOfWeek': currentDay,
       'userEmail': userEmail ?? 'Unknown',

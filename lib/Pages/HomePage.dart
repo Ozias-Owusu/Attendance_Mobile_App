@@ -89,30 +89,7 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  // Future<void> _initializeWorkManager() async {
-  //   // Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
-  //   Workmanager().registerPeriodicTask(
-  //     'dailyNotification',
-  //     'dailyNotificationTask',
-  //     frequency: const Duration(hours: 24),
-  //     initialDelay: const Duration(minutes: 1),
-  //     inputData: {},
-  //   );
-  // }
 
-  // Future<void> _initializeWorkManager_2() async {
-  //   // await NotificationService.showNotificationAt5(
-  //   //     'Attendance Notice!', 'Have you closed? ');
-  //   await NotificationService_2().scheduleDailyNotifications();
-  //   // Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
-  //   Workmanager().registerPeriodicTask(
-  //     'dailyNotification_2',
-  //     'dailyNotificationTask_2',
-  //     frequency: const Duration(hours: 24),
-  //     initialDelay: const Duration(minutes: 1),
-  //     inputData: {},
-  //   );
-  // }
 
   String? _userName;
   String? _userEmail;
@@ -296,28 +273,28 @@ class _HomePageState extends State<HomePage> {
                       ),
                     Center(
                       child: Container(
-                        height: 300,
-                        width: 300,
+                        height: 400,
+                        width: 400,
                         child: PieChart(
                           PieChartData(
                             sections: [
                               PieChartSectionData(
                                 color: Colors.green,
-                                value: yesInsideCount.toDouble(),
+                                // value: yesInsideCount.toDouble(),
                                 badgeWidget: _buildIcon('Yes (Inside)'),
                                 badgePositionPercentageOffset: 0.7,
                                 radius: 60,
                               ),
                               PieChartSectionData(
                                 color: Colors.orange,
-                                value: yesOutsideCount.toDouble(),
+                                // value: yesOutsideCount.toDouble(),
                                 badgeWidget: _buildIcon('Yes (Outside)'),
                                 badgePositionPercentageOffset: 0.5,
                                 radius: 50,
                               ),
                               PieChartSectionData(
                                 color: Colors.red,
-                                value: noCount.toDouble(),
+                                // value: noCount.toDouble(),
                                 badgeWidget: _buildIcon('No'),
                                 badgePositionPercentageOffset: 0.5,
                                 radius: 50,
