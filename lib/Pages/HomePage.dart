@@ -7,7 +7,19 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/*
+
+Make pie chart clickable where users can click a portion and it will display to them the records of that portion
+make it easy to read
+
+Make the classie more readable and meaningful
+display the coordinates well for viewing
+
+*/
 class HomePage extends StatefulWidget {
+  static final GlobalKey<_HomePageState> homePageKey =
+      GlobalKey<_HomePageState>();
+
   const HomePage({Key? key}) : super(key: key);
 
   @override
@@ -36,9 +48,45 @@ class _HomePageState extends State<HomePage> {
     'Effectiveness',
   ];
 
+  static Future<void> showMyDialog() async {
+    final context = HomePage.homePageKey.currentContext;
+
+    if (context != null) {
+      return showDialog<void>(
+        context: context,
+        barrierDismissible: false, // user must tap button!
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('AlertDialog Title'),
+            content: const SingleChildScrollView(
+              child: ListBody(
+                children: <Widget>[
+                  Text('This is a demo alert dialog.'),
+                  Text('Would you like to approve of this message?'),
+                ],
+              ),
+            ),
+            actions: <Widget>[
+              TextButton(
+                child: const Text('Approve'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        },
+      );
+    } else {
+      print('No context available.');
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    // NotificationService.showNotificationAt5(
+    //     "Attendance Notice!", "Have you closed?");
     _loadProfileImage();
     _loadAdditionalTextIndex(); // Load stored index on initialization
     _saveUserDetails();
@@ -88,8 +136,6 @@ class _HomePageState extends State<HomePage> {
           "${place.locality}, ${place.postalCode}, ${place.country}";
     });
   }
-
-
 
   String? _userName;
   String? _userEmail;
@@ -353,7 +399,7 @@ class _HomePageState extends State<HomePage> {
             SizedBox(
               height: 3,
             ),
-            Text('Views')
+            Text('Records')
           ],
         ),
       ),

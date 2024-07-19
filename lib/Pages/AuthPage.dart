@@ -10,6 +10,36 @@ class AuthPage extends StatefulWidget {
   State<AuthPage> createState() => _AuthPageState();
 }
 
+/* Check the details below and fix the authentication
+-sign in
+{
+email
+password
+}
+-user create
+{
+password(default)
+department(drop down menu)
+}
+Pie chart
+{
+create an average
+draw a pie chart
+make it make sense
+Make pie chart sessions clickable
+interpretation should be clear
+}
+badge alert
+views button(records)
+{
+views format()
+remove the fcb
+add a date range(for users to select)}
+authentication
+{
+create users and authenticate if email provided is equal to the email saved
+} */
+
 class _AuthPageState extends State<AuthPage> {
   late SharedPreferences prefs;
 

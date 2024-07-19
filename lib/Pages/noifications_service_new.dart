@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
@@ -21,14 +22,16 @@ class NotificationService {
   // displaying records (automatically delete after a month)-
   //Fix location access permissions-done
   //Splash screen -  needs work
-  //Notifications adjustment -
-  //Profile page and settings page completion -
-  //Views Page
-  //
+  //Notifications adjustment - done
+  //Profile page and settings page completion - done for me
+  //Views Page - d0ne
   //)
 
-  static Future<void> onDidReceiveNotificationResponse(
-      NotificationResponse notificationResponse) async {}
+  Future<void> onDidReceiveNotificationResponse(
+      NotificationResponse notificationResponse) async {
+    // final dialogService = DialogService(context as BuildContext);
+    // dialogService.showMyDialog();
+  }
 
   static Future<void> onActionReceived(receivedAction) async {
     // Get the current month and year
@@ -224,10 +227,11 @@ class NotificationService {
       iOS: iOSInitializationSettings,
     );
 
-    await flutterLocalNotificationsPlugin.initialize(initializationSettings,
-        onDidReceiveBackgroundNotificationResponse: onActionReceived,
-        onDidReceiveNotificationResponse: onDidReceiveNotificationResponse);
-
+    await flutterLocalNotificationsPlugin.initialize(
+      initializationSettings,
+      onDidReceiveBackgroundNotificationResponse: onActionReceived,
+      // onDidReceiveNotificationResponse: onDidReceiveNotificationResponse);
+    );
     await flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()
@@ -318,7 +322,7 @@ class NotificationService {
     tz.TZDateTime _notificationAt5PM() {
       final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
       tz.TZDateTime scheduledDate =
-          tz.TZDateTime(tz.local, now.year, now.month, now.day, 17);
+          tz.TZDateTime(tz.local, now.year, now.month, now.day, 16, 34);
       if (scheduledDate.isBefore(now)) {
         scheduledDate = scheduledDate.add(const Duration(days: 1));
       }
@@ -416,5 +420,39 @@ Permission_Checker_2() async {
   } else if (status.isDenied) {
     // If Permission denied,
     print('Location permission denied');
+  }
+}
+
+class DialogService {
+  final BuildContext context;
+
+  DialogService(this.context);
+
+  Future<void> showMyDialog() async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // user must tap button!
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('AlertDialog Title'),
+          content: const SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text('This is a demo alert dialog.'),
+                Text('Would you like to approve of this message?'),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Approve'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 }
