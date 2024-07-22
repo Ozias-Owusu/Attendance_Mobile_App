@@ -7,12 +7,14 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tz;
 
+import 'Pages/AttendanceNoticePage.dart';
 import 'Pages/AuthPage.dart';
 import 'Pages/HomePage.dart';
 import 'Pages/ProfilePage.dart';
 import 'Pages/SettingsPage.dart';
 import 'Pages/SplashScreen.dart';
 import 'Pages/ViewsPage.dart';
+import 'Pages/pie_chart_records_page.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -23,9 +25,7 @@ Future<void> main() async {
   await Permission_Checker();
   await Permission_Checker_2();
   tz.initializeTimeZones();
-
   initServices();
-
   runApp(const MyApp());
 }
 
@@ -78,6 +78,8 @@ class _MyAppState extends State<MyApp> {
             '/views': (_) => const ViewsPage(),
             '/splash': (_) => const Splashscreen(),
             '/password': (_) => const PasswordPage(),
+            '/atnp': (_) => const AttendanceNoticePage(),
+            '/piechartrecords': (_) =>  RecordsPage(section: '', records: const [],),
           },
           onGenerateRoute: (settings) {
             if (settings.name == '/settings') {

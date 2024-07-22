@@ -1,21 +1,15 @@
 import 'dart:convert';
 import 'dart:io';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:intl/intl.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/*
-
-Make pie chart clickable where users can click a portion and it will display to them the records of that portion
-make it easy to read
-
-Make the classie more readable and meaningful
-display the coordinates well for viewing
-
-*/
 class HomePage extends StatefulWidget {
   static final GlobalKey<_HomePageState> homePageKey =
       GlobalKey<_HomePageState>();
@@ -27,15 +21,16 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+
   int yesInsideCount = 0;
   int yesOutsideCount = 0;
   int noCount = 0;
   bool isLoading = true;
-  int _additionalTextIndex = 0; // Index to track which text to display
+  int _additionalTextIndex = 0;
+  Duration _averageTimeWithinRadius = Duration.zero;
 
   Position? _currentPosition;
   String? _currentAddress;
-
   String? _imagePath;
 
   List<String> additionalTexts = [
@@ -47,52 +42,17 @@ class _HomePageState extends State<HomePage> {
     'Innovation',
     'Effectiveness',
   ];
-
-  static Future<void> showMyDialog() async {
-    final context = HomePage.homePageKey.currentContext;
-
-    if (context != null) {
-      return showDialog<void>(
-        context: context,
-        barrierDismissible: false, // user must tap button!
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('AlertDialog Title'),
-            content: const SingleChildScrollView(
-              child: ListBody(
-                children: <Widget>[
-                  Text('This is a demo alert dialog.'),
-                  Text('Would you like to approve of this message?'),
-                ],
-              ),
-            ),
-            actions: <Widget>[
-              TextButton(
-                child: const Text('Approve'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
-          );
-        },
-      );
-    } else {
-      print('No context available.');
-    }
-  }
-
+  List<Map<String, dynamic>> records = [];
   @override
   void initState() {
     super.initState();
-    // NotificationService.showNotificationAt5(
-    //     "Attendance Notice!", "Have you closed?");
     _loadProfileImage();
-    _loadAdditionalTextIndex(); // Load stored index on initialization
+    _loadAdditionalTextIndex();
     _saveUserDetails();
     _getCurrentLocation();
     _loadRecordsFromSharedPreferences().then((records) {
       _updateCounts(records);
+      _calculateAverageTimeWithinRadius(records);
       setState(() {
         isLoading = false;
       });
@@ -127,7 +87,6 @@ class _HomePageState extends State<HomePage> {
       _currentPosition = position;
     });
 
-    // Use Geocoding to get the address
     List<Placemark> placemarks =
         await placemarkFromCoordinates(position.latitude, position.longitude);
     Placemark place = placemarks[0];
@@ -178,7 +137,6 @@ class _HomePageState extends State<HomePage> {
           tempNoCount++;
           break;
         default:
-          // Handle unexpected cases if necessary
           break;
       }
     }
@@ -188,6 +146,26 @@ class _HomePageState extends State<HomePage> {
       yesOutsideCount = tempYesOutsideCount;
       noCount = tempNoCount;
     });
+  }
+
+  Future<void> _calculateAverageTimeWithinRadius(
+      List<Map<String, dynamic>> records) async {
+    int totalMinutes = 0;
+    int count = 0;
+
+    for (var record in records) {
+      if (record['action'] == 'Yes I am at work' && record['time'] != null) {
+        DateTime recordTime = DateTime.parse(record['time']);
+        totalMinutes += recordTime.hour * 60 + recordTime.minute;
+        count++;
+      }
+    }
+
+    if (count > 0) {
+      setState(() {
+        _averageTimeWithinRadius = Duration(minutes: totalMinutes ~/ count);
+      });
+    }
   }
 
   Widget _buildIcon(String title) {
@@ -251,6 +229,134 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  // void _onSectionTapped(String section) {
+  //
+  //   Navigator.push(
+  //     context,
+  //     MaterialPageRoute(
+  //       builder: (context) => RecordsPage(
+  //         section: section,
+  //         records: const [],
+  //       ),
+  //     ),
+  //   );
+  // }
+
+  Future<List<Map<String, dynamic>>> _fetchRecords(String section) async {
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user == null) return [];
+
+      final email = user.email!;
+      List<Stream<QuerySnapshot<Map<String, dynamic>>>> streams = [];
+
+      DateTime now = DateTime.now();
+      DateTime startDate = DateTime(now.year, now.month, 1);
+      DateTime endDate = DateTime(now.year, now.month + 1, 0);
+
+      for (int i = 0; i <= endDate.day; i++) {
+        DateTime currentDate = startDate.add(Duration(days: i));
+        int currentMonth = currentDate.month;
+        int currentYear = currentDate.year;
+        String currentDayNumber = DateFormat('d').format(currentDate);
+
+        String collectionPath;
+        switch (section) {
+          case 'Yes (Inside)':
+            collectionPath = '$currentDayNumber-$currentMonth-$currentYear {yes_Inside}';
+            break;
+          case 'Yes (Outside)':
+            collectionPath = '$currentDayNumber-$currentMonth-$currentYear {yes_Outside}';
+            break;
+          case 'No':
+            collectionPath = '$currentDayNumber-$currentMonth-$currentYear {no}';
+            break;
+          default:
+            collectionPath = '';
+        }
+
+        if (collectionPath.isNotEmpty) {
+          streams.add(
+            FirebaseFirestore.instance
+                .collection('Records')
+                .doc('Starting_time')
+                .collection(collectionPath)
+                .where('userEmail', isEqualTo: email)
+                .snapshots(),
+          );
+        }
+      }
+
+      // Add ClosingRecords
+      streams.addAll([
+        FirebaseFirestore.instance
+            .collection('ClosingRecords')
+            .doc('Closing_time')
+            .collection(section == 'Yes (Inside)' ? 'yes_Closed' : section == 'Yes (Outside)' ? 'no_Closed' : 'no_option_selected_Closed')
+            .where('userEmail', isEqualTo: email)
+            .snapshots(),
+      ]);
+
+      return (await CombineLatestStream.list(streams).first)
+          .expand((snapshot) => snapshot.docs.map((doc) {
+        final data = doc.data();
+        Timestamp timestamp = data['timestamp'] as Timestamp;
+        DateTime dateTime = timestamp.toDate();
+        data['date'] = DateFormat('dd-MM-yyyy').format(dateTime);
+        data['time'] = DateFormat('HH:mm').format(dateTime);
+        data['dayOfWeek'] = DateFormat('EEEE').format(dateTime);
+        data.remove('userName');
+        data.remove('userEmail');
+        return data;
+      }).toList())
+          .toList();
+    } catch (e) {
+      print('Error fetching records: $e');
+      return [];
+    }
+  }
+
+
+  void _onSectionTapped(String section) async {
+    List<Map<String, dynamic>> records = await _fetchRecords(section);
+    _showRecordsDialog(section, records);
+  }
+
+  void _showRecordsDialog(String section, List<Map<String, dynamic>> records) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Records for $section'),
+          content: Container(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: records.length,
+              itemBuilder: (context, index) {
+                Map<String, dynamic> record = records[index];
+                return ListTile(
+                  title: Text(record['date'] ?? 'No Date'),
+                  trailing: Text(record['action'] ?? 'No Action'),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -282,11 +388,9 @@ class _HomePageState extends State<HomePage> {
             icon: const Icon(Icons.settings),
             onPressed: () {
               Navigator.pushNamed(context, '/settings').then((_) {
-                // Navigate back from views page, increment additional text index
                 _saveAdditionalTextIndex(
                     (_additionalTextIndex + 1) % additionalTexts.length);
               });
-              ;
             },
           ),
         ],
@@ -318,7 +422,7 @@ class _HomePageState extends State<HomePage> {
                         ],
                       ),
                     Center(
-                      child: Container(
+                      child: SizedBox(
                         height: 400,
                         width: 400,
                         child: PieChart(
@@ -327,27 +431,35 @@ class _HomePageState extends State<HomePage> {
                               PieChartSectionData(
                                 color: Colors.green,
                                 // value: yesInsideCount.toDouble(),
-                                badgeWidget: _buildIcon('Yes (Inside)'),
+                                badgeWidget: GestureDetector(
+                                  onTap: () => _onSectionTapped('Yes (Inside)'),
+                                  child: _buildIcon('Yes (Inside)'),
+                                ),
                                 badgePositionPercentageOffset: 0.7,
-                                radius: 60,
+                                radius: 80,
                               ),
                               PieChartSectionData(
                                 color: Colors.orange,
                                 // value: yesOutsideCount.toDouble(),
-                                badgeWidget: _buildIcon('Yes (Outside)'),
+                                badgeWidget: GestureDetector(
+                                  onTap: () =>
+                                      _onSectionTapped('Yes (Outside)'),
+                                  child: _buildIcon('Yes (Outside)'),
+                                ),
                                 badgePositionPercentageOffset: 0.5,
-                                radius: 50,
+                                radius: 70,
                               ),
                               PieChartSectionData(
                                 color: Colors.red,
                                 // value: noCount.toDouble(),
-                                badgeWidget: _buildIcon('No'),
+                                badgeWidget: GestureDetector(
+                                  onTap: () => _onSectionTapped('No'),
+                                  child: _buildIcon('No'),
+                                ),
                                 badgePositionPercentageOffset: 0.5,
-                                radius: 50,
+                                radius: 70,
                               ),
                             ],
-                            centerSpaceRadius: 50,
-                            sectionsSpace: 2,
                           ),
                         ),
                       ),
@@ -355,51 +467,49 @@ class _HomePageState extends State<HomePage> {
                     const SizedBox(height: 16),
                     Column(
                       children: [
-                        _buildLegendItem(Colors.green, 'Yes (Inside)'),
-                        _buildLegendItem(Colors.orange, 'Yes (Outside)'),
-                        _buildLegendItem(Colors.red, 'No'),
+                        _buildLegendItem(
+                            Colors.green, 'Checked In (Within geolocator)'),
+                        _buildLegendItem(
+                            Colors.orange, 'Checked In (Outside geolocator)'),
+                        _buildLegendItem(Colors.red, 'Not Checked In'),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    const Text(
-                      'CLASSIE',
-                      style: TextStyle(
-                          fontSize: 40,
-                          fontWeight: FontWeight.bold,
-                          fontStyle: FontStyle.italic),
-                    ),
+                    if (_averageTimeWithinRadius != Duration.zero)
+                      Text(
+                        'Average Time Within Radius: '
+                        '${_averageTimeWithinRadius.inHours}h ${_averageTimeWithinRadius.inMinutes % 60}m',
+                        style: const TextStyle(fontSize: 16),
+                      ),
                     const SizedBox(height: 16),
                     Text(
-                      _additionalTextIndex < additionalTexts.length
-                          ? additionalTexts[_additionalTextIndex]
-                          : '',
-                      style: const TextStyle(
-                        fontSize: 20,
-                      ),
+                      additionalTexts[_additionalTextIndex],
+                      style: const TextStyle(fontSize: 16),
                     ),
+                    const SizedBox(
+                      height: 20,
+                    ),
+                    TextButton(
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/atnp');
+                        },
+                        child: const Text('Check In', style: TextStyle(fontSize: 25),))
                   ],
                 ),
               ),
             ),
       floatingActionButton: FloatingActionButton(
-        splashColor: Colors.purple,
         onPressed: () {
-          Navigator.pushNamed(context, '/views').then((_) {
-            // Navigate back from views page, increment additional text index
-            _saveAdditionalTextIndex(
-                (_additionalTextIndex + 1) % additionalTexts.length);
-          });
+          Navigator.pushNamed(context, '/views');
         },
         child: const Column(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            SizedBox(
-              height: 3,
-            ),
-            Icon(Icons.remove_red_eye),
-            SizedBox(
-              height: 3,
-            ),
-            Text('Records')
+            Icon(Icons.remove_red_eye_rounded),
+            Padding(
+              padding: EdgeInsets.fromLTRB(1, 0, 2, 1),
+              child: Text('Records'),
+            )
           ],
         ),
       ),
@@ -421,7 +531,7 @@ class ThemeProvider with ChangeNotifier {
 class ImageScreen extends StatelessWidget {
   final String imagePath;
 
-  ImageScreen(this.imagePath);
+  const ImageScreen(this.imagePath, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -440,10 +550,3 @@ class ImageScreen extends StatelessWidget {
     );
   }
 }
-
-// void callbackDispatcher() {
-//   Workmanager().executeTask((task, inputData) {
-//     // Your background task code here
-//     return Future.value(true);
-//   });
-// }

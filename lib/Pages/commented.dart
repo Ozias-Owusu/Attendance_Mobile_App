@@ -3895,3 +3895,3197 @@
 //     );
 //   }
 // }
+
+// import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:firebase_auth/firebase_auth.dart';
+// import 'package:flutter/material.dart';
+// import 'package:intl/intl.dart';
+// import 'package:rxdart/rxdart.dart';
+// import 'package:shared_preferences/shared_preferences.dart';
+//
+// class ViewsPage extends StatefulWidget {
+//
+//
+//   const ViewsPage({super.key});
+//
+//   @override
+//   State<ViewsPage> createState() => _ViewsPageState();
+// }
+//
+// class _ViewsPageState extends State<ViewsPage> {
+//   late Stream<List<Map<String, dynamic>>> _recordsStream;
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     _recordsStream = _createRecordsStream();
+//   }
+//
+//   Map<String, dynamic> convertStringToTimestamp(Map<String, dynamic> record) {
+//     if (record['timestamp'] is String) {
+//       record['timestamp'] =
+//           Timestamp.fromDate(DateTime.parse(record['timestamp']).toUtc());
+//     }
+//     return record;
+//   }
+//
+//   Map<String, dynamic> convertTimestampToString(Map<String, dynamic> record) {
+//     if (record['timestamp'] is Timestamp) {
+//       record['timestamp'] =
+//           (record['timestamp'] as Timestamp).toDate().toUtc().toIso8601String();
+//     }
+//     return record;
+//   }
+//
+//   Stream<List<Map<String, dynamic>>> _createRecordsStream() async* {
+//     User? user = FirebaseAuth.instance.currentUser;
+//     if (user == null) {
+//       yield [];
+//       return;
+//     }
+//
+//     final email = user.email!;
+//     List<Stream<QuerySnapshot<Map<String, dynamic>>>> streams = [];
+//
+//     DateTime now = DateTime.now();
+//     DateTime startDate = now.subtract(const Duration(days: 7));
+//
+//     for (int i = 0; i <= 7; i++) {
+//       DateTime currentDate = startDate.add(Duration(days: i));
+//       int currentMonth = currentDate.month;
+//       int currentYear = currentDate.year;
+//       String currentDayNumber = DateFormat('d').format(currentDate);
+//
+//       streams.addAll([
+//         FirebaseFirestore.instance
+//             .collection('Records')
+//             .doc('Starting_time')
+//             .collection(
+//                 '$currentDayNumber-$currentMonth-$currentYear {yes_Inside}')
+//             .where('userEmail', isEqualTo: email)
+//             .snapshots(),
+//         FirebaseFirestore.instance
+//             .collection('Records')
+//             .doc('Starting_time')
+//             .collection(
+//                 '$currentDayNumber-$currentMonth-$currentYear {yes_Outside}')
+//             .where('userEmail', isEqualTo: email)
+//             .snapshots(),
+//         FirebaseFirestore.instance
+//             .collection('Records')
+//             .doc('Starting_time')
+//             .collection('$currentDayNumber-$currentMonth-$currentYear {no}')
+//             .where('userEmail', isEqualTo: email)
+//             .snapshots(),
+//         FirebaseFirestore.instance
+//             .collection('Records')
+//             .doc('Starting_time')
+//             .collection(
+//                 '$currentDayNumber-$currentMonth-$currentYear {no_option_selected}')
+//             .where('userEmail', isEqualTo: email)
+//             .snapshots(),
+//       ]);
+//     }
+//
+//     streams.addAll([
+//       FirebaseFirestore.instance
+//           .collection('ClosingRecords')
+//           .doc('Closing_time')
+//           .collection('yes_Closed')
+//           .where('userEmail', isEqualTo: email)
+//           .snapshots(),
+//       FirebaseFirestore.instance
+//           .collection('ClosingRecords')
+//           .doc('Closing_time')
+//           .collection('no_Closed')
+//           .where('userEmail', isEqualTo: email)
+//           .snapshots(),
+//       FirebaseFirestore.instance
+//           .collection('ClosingRecords')
+//           .doc('Closing_time')
+//           .collection('no_option_selected_Closed')
+//           .where('userEmail', isEqualTo: email)
+//           .snapshots(),
+//     ]);
+//
+//     yield* CombineLatestStream.list(streams).map((snapshots) {
+//       List<Map<String, dynamic>> allRecords = [];
+//       for (var snapshot in snapshots) {
+//         allRecords.addAll(snapshot.docs.map((doc) {
+//           final data = doc.data();
+//           Timestamp timestamp = data['timestamp'] as Timestamp;
+//           DateTime dateTime = timestamp.toDate();
+//
+//           data['date'] = DateFormat('dd-MM-yyyy').format(dateTime);
+//           data['time'] = DateFormat('HH:mm:ss').format(dateTime);
+//           data['dayOfWeek'] = DateFormat('EEEE').format(dateTime);
+//           return data;
+//         }).toList());
+//       }
+//       return allRecords;
+//     });
+//   }
+//
+//   Future<void> _clearRecords() async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     await prefs.remove('userRecords');
+//     setState(() {});
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     User? user = FirebaseAuth.instance.currentUser;
+//     String? email = user?.email;
+//
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: const Text('User Records'),
+//       ),
+//       body: email == null
+//           ? const Center(child: Text('No user signed in'))
+//           : StreamBuilder<List<Map<String, dynamic>>>(
+//               stream: _recordsStream,
+//               builder: (context, snapshot) {
+//                 if (snapshot.connectionState == ConnectionState.waiting) {
+//                   return const Center(child: CircularProgressIndicator());
+//                 } else if (snapshot.hasError) {
+//                   return Center(child: Text('Error: ${snapshot.error}'));
+//                 } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+//                   return const Center(child: Text('No records found'));
+//                 } else {
+//                   List<Map<String, dynamic>> records = snapshot.data!;
+//                   Map<String, List<Map<String, dynamic>>> groupedRecords = {};
+//
+//                   for (var record in records) {
+//                     String dateKey =
+//                         '${record['dayOfWeek']} ${record['date']} ${record['time']}';
+//                     if (groupedRecords[dateKey] == null) {
+//                       groupedRecords[dateKey] = [];
+//                     }
+//                     groupedRecords[dateKey]!.add(record);
+//                   }
+//
+//                   List<String> sortedKeys = groupedRecords.keys.toList();
+//                   sortedKeys.sort((a, b) {
+//                     DateTime dateA =
+//                         DateFormat('EEEE dd-MM-yyyy HH:mm:ss').parse(a);
+//                     DateTime dateB =
+//                         DateFormat('EEEE dd-MM-yyyy HH:mm:ss').parse(b);
+//                     return dateB.compareTo(dateA); // Sort in descending order
+//                   });
+//
+//                   return ListView.builder(
+//                     itemCount: sortedKeys.length,
+//                     itemBuilder: (context, index) {
+//                       String dateKey = sortedKeys[index];
+//                       List<Map<String, dynamic>> dateRecords =
+//                           groupedRecords[dateKey]!;
+//
+//                       return Column(
+//                         crossAxisAlignment: CrossAxisAlignment.start,
+//                         children: [
+//                           Padding(
+//                             padding: const EdgeInsets.all(8.0),
+//                             child: Text(
+//                               dateKey,
+//                               style: const TextStyle(
+//                                   fontSize: 18, fontWeight: FontWeight.bold),
+//                             ),
+//                           ),
+//                           ...dateRecords.map((record) {
+//                             return ListTile(
+//                               title: Text('User: ${record['userName']}'),
+//                               subtitle: Column(
+//                                 crossAxisAlignment: CrossAxisAlignment.start,
+//                                 children: [
+//                                   Text('Email: ${record['userEmail']}'),
+//                                   Text('Status: ${record['action']}'),
+//                                   Text('Date: ${record['date']}'),
+//                                   Text('Time: ${record['time']}'),
+//                                   if (record.containsKey('source'))
+//                                     Text('Source: ${record['source']}'),
+//                                 ],
+//                               ),
+//                             );
+//                           }).toList(),
+//                         ],
+//                       );
+//                     },
+//                   );
+//                 }
+//               },
+//             ),
+//       // floatingActionButton: FloatingActionButton(
+//       //   onPressed: _clearRecords,
+//       //   tooltip: 'Clear Records',
+//       //   child: Icon(Icons.clear),
+//       // ),
+//     );
+//   }
+// }
+
+
+//
+// import 'dart:convert';
+// import 'dart:io';
+//
+// import 'package:attendance_mobile_app/Pages/pie_chart_records_page.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:fl_chart/fl_chart.dart';
+// import 'package:flutter/material.dart';
+// import 'package:geocoding/geocoding.dart';
+// import 'package:geolocator/geolocator.dart';
+// import 'package:shared_preferences/shared_preferences.dart';
+//
+// class HomePage extends StatefulWidget {
+//   static final GlobalKey<_HomePageState> homePageKey =
+//   GlobalKey<_HomePageState>();
+//
+//   const HomePage({Key? key}) : super(key: key);
+//
+//   @override
+//   State<HomePage> createState() => _HomePageState();
+// }
+//
+// class _HomePageState extends State<HomePage> {
+//   int yesInsideCount = 0;
+//   int yesOutsideCount = 0;
+//   int noCount = 0;
+//   bool isLoading = true;
+//   int _additionalTextIndex = 0; // Index to track which text to display
+//
+//   Position? _currentPosition;
+//   String? _currentAddress;
+//
+//   String? _imagePath;
+//
+//   List<String> additionalTexts = [
+//     'Customer Sensitivity',
+//     'Leadership',
+//     'Accountability',
+//     'Speed',
+//     'Shared Vision and Mindset',
+//     'Innovation',
+//     'Effectiveness',
+//   ];
+//
+//   static Future<void> showMyDialog() async {
+//     final context = HomePage.homePageKey.currentContext;
+//
+//     if (context != null) {
+//       return showDialog<void>(
+//         context: context,
+//         barrierDismissible: false, // user must tap button!
+//         builder: (BuildContext context) {
+//           return AlertDialog(
+//             title: const Text('AlertDialog Title'),
+//             content: const SingleChildScrollView(
+//               child: ListBody(
+//                 children: <Widget>[
+//                   Text('This is a demo alert dialog.'),
+//                   Text('Would you like to approve of this message?'),
+//                 ],
+//               ),
+//             ),
+//             actions: <Widget>[
+//               TextButton(
+//                 child: const Text('Approve'),
+//                 onPressed: () {
+//                   Navigator.of(context).pop();
+//                 },
+//               ),
+//             ],
+//           );
+//         },
+//       );
+//     } else {
+//       print('No context available.');
+//     }
+//   }
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     _loadProfileImage();
+//     _loadAdditionalTextIndex(); // Load stored index on initialization
+//     _saveUserDetails();
+//     _getCurrentLocation();
+//     _loadRecordsFromSharedPreferences().then((records) {
+//       _updateCounts(records);
+//       setState(() {
+//         isLoading = false;
+//       });
+//     });
+//   }
+//
+//   Future<void> _getCurrentLocation() async {
+//     bool serviceEnabled;
+//     LocationPermission permission;
+//
+//     serviceEnabled = await Geolocator.isLocationServiceEnabled();
+//     if (!serviceEnabled) {
+//       return Future.error('Location services are disabled.');
+//     }
+//
+//     permission = await Geolocator.checkPermission();
+//     if (permission == LocationPermission.denied) {
+//       permission = await Geolocator.requestPermission();
+//       if (permission == LocationPermission.denied) {
+//         return Future.error('Location permissions are denied');
+//       }
+//     }
+//
+//     if (permission == LocationPermission.deniedForever) {
+//       return Future.error(
+//           'Location permissions are permanently denied, we cannot request permissions.');
+//     }
+//
+//     Position position = await Geolocator.getCurrentPosition(
+//         desiredAccuracy: LocationAccuracy.high);
+//     setState(() {
+//       _currentPosition = position;
+//     });
+//
+//     // Use Geocoding to get the address
+//     List<Placemark> placemarks =
+//     await placemarkFromCoordinates(position.latitude, position.longitude);
+//     Placemark place = placemarks[0];
+//     setState(() {
+//       _currentAddress =
+//       "${place.locality}, ${place.postalCode}, ${place.country}";
+//     });
+//   }
+//
+//   String? _userName;
+//   String? _userEmail;
+//   String? _userPassword;
+//
+//   Future<void> _saveUserDetails() async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     setState(() {
+//       _userName = prefs.getString('userName');
+//       _userEmail = prefs.getString('userEmail');
+//       _userPassword = prefs.getString('userPassword');
+//     });
+//   }
+//
+//   Future<List<Map<String, dynamic>>> _loadRecordsFromSharedPreferences() async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     String? jsonString = prefs.getString('userRecords');
+//     if (jsonString == null) {
+//       return [];
+//     } else {
+//       List<dynamic> jsonList = jsonDecode(jsonString);
+//       return jsonList.map((item) => Map<String, dynamic>.from(item)).toList();
+//     }
+//   }
+//
+//   void _updateCounts(List<Map<String, dynamic>> records) {
+//     int tempYesInsideCount = 0;
+//     int tempYesOutsideCount = 0;
+//     int tempNoCount = 0;
+//
+//     for (var record in records) {
+//       switch (record['action']) {
+//         case 'Yes I am at work':
+//           tempYesInsideCount++;
+//           break;
+//         case 'No I am not at work (Outside)':
+//           tempYesOutsideCount++;
+//           break;
+//         case 'No I am not at work':
+//           tempNoCount++;
+//           break;
+//         default:
+//         // Handle unexpected cases if necessary
+//           break;
+//       }
+//     }
+//
+//     setState(() {
+//       yesInsideCount = tempYesInsideCount;
+//       yesOutsideCount = tempYesOutsideCount;
+//       noCount = tempNoCount;
+//     });
+//   }
+//
+//   Widget _buildIcon(String title) {
+//     IconData iconData;
+//     Color color;
+//
+//     switch (title) {
+//       case 'Yes (Inside)':
+//         iconData = Icons.check_circle;
+//         color = Colors.white;
+//         break;
+//       case 'Yes (Outside)':
+//         iconData = Icons.location_off;
+//         color = Colors.white;
+//         break;
+//       case 'No':
+//         iconData = Icons.cancel;
+//         color = Colors.white;
+//         break;
+//       default:
+//         iconData = Icons.help;
+//         color = Colors.grey;
+//     }
+//
+//     return Icon(iconData, color: color, size: 24);
+//   }
+//
+//   Widget _buildLegendItem(Color color, String text) {
+//     return Row(
+//       children: [
+//         Container(
+//           width: 16,
+//           height: 16,
+//           color: color,
+//         ),
+//         const SizedBox(width: 8),
+//         Text(text),
+//       ],
+//     );
+//   }
+//
+//   Future<void> _loadAdditionalTextIndex() async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     setState(() {
+//       _additionalTextIndex = prefs.getInt('additionalTextIndex') ?? 0;
+//     });
+//   }
+//
+//   Future<void> _saveAdditionalTextIndex(int newIndex) async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     await prefs.setInt('additionalTextIndex', newIndex);
+//     setState(() {
+//       _additionalTextIndex = newIndex;
+//     });
+//   }
+//
+//   Future<void> _loadProfileImage() async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     setState(() {
+//       _imagePath = prefs.getString('profile_image');
+//     });
+//   }
+//
+//   Future<void> _onSectionTapped(String section) async {
+//     List<Map<String, dynamic>> startingRecords = [];
+//     List<Map<String, dynamic>> closingRecords = [];
+//
+//     try {
+//       if (section == 'Yes (Inside)' || section == 'Yes (Outside)') {
+//         QuerySnapshot startingSnapshot = await FirebaseFirestore.instance
+//             .collection('Records')
+//             .doc('Starting_time')
+//             .collection('yes_Closed')
+//             .get();
+//
+//         QuerySnapshot closingSnapshot = await FirebaseFirestore.instance
+//             .collection('ClosingRecords')
+//             .doc('Closing_time')
+//             .collection('yes_Closed')
+//             .get();
+//
+//         startingRecords = startingSnapshot.docs
+//             .map((doc) => doc.data() as Map<String, dynamic>)
+//             .toList();
+//
+//         closingRecords = closingSnapshot.docs
+//             .map((doc) => doc.data() as Map<String, dynamic>)
+//             .toList();
+//       } else if (section == 'No') {
+//         QuerySnapshot startingSnapshot = await FirebaseFirestore.instance
+//             .collection('Records')
+//             .doc('Starting_time')
+//             .collection('no_Closed')
+//             .get();
+//
+//         QuerySnapshot closingSnapshot = await FirebaseFirestore.instance
+//             .collection('ClosingRecords')
+//             .doc('Closing_time')
+//             .collection('no_Closed')
+//             .get();
+//
+//         startingRecords = startingSnapshot.docs
+//             .map((doc) => doc.data() as Map<String, dynamic>)
+//             .toList();
+//
+//         closingRecords = closingSnapshot.docs
+//             .map((doc) => doc.data() as Map<String, dynamic>)
+//             .toList();
+//       }
+//
+//       List<Map<String, dynamic>> allRecords = [
+//         ...startingRecords,
+//         ...closingRecords
+//       ];
+//
+//       Navigator.push(
+//         context,
+//         MaterialPageRoute(
+//           builder: (context) => RecordsPage(records: allRecords, section: section),
+//         ),
+//       );
+//     } catch (e) {
+//       print('Error fetching records: $e');
+//       // Handle the error appropriately
+//     }
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       key: HomePage.homePageKey,
+//       appBar: AppBar(
+//         title: const Text('Home Page'),
+//       ),
+//       body: isLoading
+//           ? const Center(child: CircularProgressIndicator())
+//           : SingleChildScrollView(
+//         child: Padding(
+//           padding: const EdgeInsets.all(16.0),
+//           child: Column(
+//             crossAxisAlignment: CrossAxisAlignment.start,
+//             children: [
+//               if (_imagePath != null)
+//                 GestureDetector(
+//                   onTap: () {
+//                     Navigator.push(
+//                       context,
+//                       MaterialPageRoute(
+//                         builder: (context) => ImageScreen(_imagePath!),
+//                       ),
+//                     );
+//                   },
+//                   child: CircleAvatar(
+//                     radius: 50,
+//                     backgroundImage: FileImage(File(_imagePath!)),
+//                   ),
+//                 ),
+//               const SizedBox(height: 16),
+//               Text(
+//                 _currentAddress ?? 'Getting location...',
+//                 style: const TextStyle(fontSize: 18),
+//               ),
+//               const SizedBox(height: 16),
+//               Center(
+//                 child: Container(
+//                   height: 400,
+//                   child: PieChart(
+//                     PieChartData(
+//                       sections: [
+//                         PieChartSectionData(
+//                           color: Colors.green,
+//                           // value: yesInsideCount.toDouble(),
+//                           badgeWidget: GestureDetector(
+//                             onTap: () => _onSectionTapped('Yes (Inside)'),
+//                             child: _buildIcon('Yes (Inside)'),
+//                           ),
+//                           radius: 90,
+//                           // title: 'Yes (Inside)',
+//                           titleStyle: const TextStyle(
+//                             fontSize: 16,
+//                             fontWeight: FontWeight.bold,
+//                             color: Colors.white,
+//                           ),
+//                         ),
+//                         PieChartSectionData(
+//                           color: Colors.orange,
+//                           // value: yesOutsideCount.toDouble(),
+//                           badgeWidget: GestureDetector(
+//                             onTap: () =>
+//                                 _onSectionTapped('Yes (Outside)'),
+//                             child: _buildIcon('Yes (Outside)'),
+//                           ),
+//                           radius: 80,
+//                           // title: 'Yes (Outside)',
+//                           titleStyle: const TextStyle(
+//                             fontSize: 16,
+//                             fontWeight: FontWeight.bold,
+//                             color: Colors.white,
+//                           ),
+//                         ),
+//                         PieChartSectionData(
+//                           color: Colors.red,
+//                           // value: noCount.toDouble(),
+//                           badgeWidget: GestureDetector(
+//                             onTap: () => _onSectionTapped('No'),
+//                             child: _buildIcon('No'),
+//                           ),
+//                           radius: 80,
+//                           // title: 'No',
+//                           titleStyle: const TextStyle(
+//                             fontSize: 16,
+//                             fontWeight: FontWeight.bold,
+//                             color: Colors.white,
+//                           ),
+//                         ),
+//                       ],
+//                       centerSpaceRadius: 50,
+//                       borderData: FlBorderData(show: false),
+//                     ),
+//                   ),
+//                 ),
+//               ),
+//               const SizedBox(height: 16),
+//               Column(
+//                 children: [
+//                   _buildLegendItem(Colors.green, 'Yes (Inside)'),
+//                   _buildLegendItem(Colors.orange, 'Yes (Outside)'),
+//                   _buildLegendItem(Colors.red, 'No'),
+//                 ],
+//               ),
+//               const SizedBox(height: 16),
+//               const Text(
+//                 'Here is some additional text:',
+//                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+//               ),
+//               const SizedBox(height: 16),
+//               Text(
+//                 additionalTexts[_additionalTextIndex],
+//                 style: const TextStyle(fontSize: 18),
+//               ),
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
+// void callbackDispatcher() {
+//   Workmanager().executeTask((task, inputData) {
+//     // Your background task code here
+//     return Future.value(true);
+//   });
+// }
+// import 'dart:convert';
+// import 'dart:io';
+//
+// import 'package:fl_chart/fl_chart.dart';
+// import 'package:flutter/material.dart';
+// import 'package:geocoding/geocoding.dart';
+// import 'package:geolocator/geolocator.dart';
+// import 'package:shared_preferences/shared_preferences.dart';
+//
+// /*
+//
+// Make pie chart clickable where users can click a portion and it will display to them the records of that portion
+// make it easy to read
+//
+// Make the classie more readable and meaningful
+// display the coordinates well for viewing
+//
+// */
+// class HomePage extends StatefulWidget {
+//   static final GlobalKey<_HomePageState> homePageKey =
+//       GlobalKey<_HomePageState>();
+//
+//   const HomePage({Key? key}) : super(key: key);
+//
+//   @override
+//   State<HomePage> createState() => _HomePageState();
+// }
+//
+// class _HomePageState extends State<HomePage> {
+//   int yesInsideCount = 0;
+//   int yesOutsideCount = 0;
+//   int noCount = 0;
+//   bool isLoading = true;
+//   int _additionalTextIndex = 0; // Index to track which text to display
+//
+//   Position? _currentPosition;
+//   String? _currentAddress;
+//
+//   String? _imagePath;
+//
+//   List<String> additionalTexts = [
+//     'Customer Sensitivity',
+//     'Leadership',
+//     'Accountability',
+//     'Speed',
+//     'Shared Vision and Mindset',
+//     'Innovation',
+//     'Effectiveness',
+//   ];
+//
+//   static Future<void> showMyDialog() async {
+//     final context = HomePage.homePageKey.currentContext;
+//
+//     if (context != null) {
+//       return showDialog<void>(
+//         context: context,
+//         barrierDismissible: false, // user must tap button!
+//         builder: (BuildContext context) {
+//           return AlertDialog(
+//             title: const Text('AlertDialog Title'),
+//             content: const SingleChildScrollView(
+//               child: ListBody(
+//                 children: <Widget>[
+//                   Text('This is a demo alert dialog.'),
+//                   Text('Would you like to approve of this message?'),
+//                 ],
+//               ),
+//             ),
+//             actions: <Widget>[
+//               TextButton(
+//                 child: const Text('Approve'),
+//                 onPressed: () {
+//                   Navigator.of(context).pop();
+//                 },
+//               ),
+//             ],
+//           );
+//         },
+//       );
+//     } else {
+//       print('No context available.');
+//     }
+//   }
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     // NotificationService.showNotificationAt5(
+//     //     "Attendance Notice!", "Have you closed?");
+//     _loadProfileImage();
+//     _loadAdditionalTextIndex(); // Load stored index on initialization
+//     _saveUserDetails();
+//     _getCurrentLocation();
+//     _loadRecordsFromSharedPreferences().then((records) {
+//       _updateCounts(records);
+//       setState(() {
+//         isLoading = false;
+//       });
+//     });
+//   }
+//
+//   Future<void> _getCurrentLocation() async {
+//     bool serviceEnabled;
+//     LocationPermission permission;
+//
+//     serviceEnabled = await Geolocator.isLocationServiceEnabled();
+//     if (!serviceEnabled) {
+//       return Future.error('Location services are disabled.');
+//     }
+//
+//     permission = await Geolocator.checkPermission();
+//     if (permission == LocationPermission.denied) {
+//       permission = await Geolocator.requestPermission();
+//       if (permission == LocationPermission.denied) {
+//         return Future.error('Location permissions are denied');
+//       }
+//     }
+//
+//     if (permission == LocationPermission.deniedForever) {
+//       return Future.error(
+//           'Location permissions are permanently denied, we cannot request permissions.');
+//     }
+//
+//     Position position = await Geolocator.getCurrentPosition(
+//         desiredAccuracy: LocationAccuracy.high);
+//     setState(() {
+//       _currentPosition = position;
+//     });
+//
+//     // Use Geocoding to get the address
+//     List<Placemark> placemarks =
+//         await placemarkFromCoordinates(position.latitude, position.longitude);
+//     Placemark place = placemarks[0];
+//     setState(() {
+//       _currentAddress =
+//           "${place.locality}, ${place.postalCode}, ${place.country}";
+//     });
+//   }
+//
+//   String? _userName;
+//   String? _userEmail;
+//   String? _userPassword;
+//
+//   Future<void> _saveUserDetails() async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     setState(() {
+//       _userName = prefs.getString('userName');
+//       _userEmail = prefs.getString('userEmail');
+//       _userPassword = prefs.getString('userPassword');
+//     });
+//   }
+//
+//   Future<List<Map<String, dynamic>>> _loadRecordsFromSharedPreferences() async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     String? jsonString = prefs.getString('userRecords');
+//     if (jsonString == null) {
+//       return [];
+//     } else {
+//       List<dynamic> jsonList = jsonDecode(jsonString);
+//       return jsonList.map((item) => Map<String, dynamic>.from(item)).toList();
+//     }
+//   }
+//
+//   void _updateCounts(List<Map<String, dynamic>> records) {
+//     int tempYesInsideCount = 0;
+//     int tempYesOutsideCount = 0;
+//     int tempNoCount = 0;
+//
+//     for (var record in records) {
+//       switch (record['action']) {
+//         case 'Yes I am at work':
+//           tempYesInsideCount++;
+//           break;
+//         case 'No I am not at work (Outside)':
+//           tempYesOutsideCount++;
+//           break;
+//         case 'No I am not at work':
+//           tempNoCount++;
+//           break;
+//         default:
+//           // Handle unexpected cases if necessary
+//           break;
+//       }
+//     }
+//
+//     setState(() {
+//       yesInsideCount = tempYesInsideCount;
+//       yesOutsideCount = tempYesOutsideCount;
+//       noCount = tempNoCount;
+//     });
+//   }
+//
+//   Widget _buildIcon(String title) {
+//     IconData iconData;
+//     Color color;
+//
+//     switch (title) {
+//       case 'Yes (Inside)':
+//         iconData = Icons.check_circle;
+//         color = Colors.white;
+//         break;
+//       case 'Yes (Outside)':
+//         iconData = Icons.location_off;
+//         color = Colors.white;
+//         break;
+//       case 'No':
+//         iconData = Icons.cancel;
+//         color = Colors.white;
+//         break;
+//       default:
+//         iconData = Icons.help;
+//         color = Colors.grey;
+//     }
+//
+//     return Icon(iconData, color: color, size: 24);
+//   }
+//
+//   Widget _buildLegendItem(Color color, String text) {
+//     return Row(
+//       children: [
+//         Container(
+//           width: 16,
+//           height: 16,
+//           color: color,
+//         ),
+//         const SizedBox(width: 8),
+//         Text(text),
+//       ],
+//     );
+//   }
+//
+//   Future<void> _loadAdditionalTextIndex() async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     setState(() {
+//       _additionalTextIndex = prefs.getInt('additionalTextIndex') ?? 0;
+//     });
+//   }
+//
+//   Future<void> _saveAdditionalTextIndex(int newIndex) async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     await prefs.setInt('additionalTextIndex', newIndex);
+//     setState(() {
+//       _additionalTextIndex = newIndex;
+//     });
+//   }
+//
+//   Future<void> _loadProfileImage() async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     setState(() {
+//       _imagePath = prefs.getString('profile_image');
+//     });
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         automaticallyImplyLeading: false,
+//         actions: [
+//           _imagePath == null
+//               ? IconButton(
+//                   icon: const Icon(Icons.person),
+//                   onPressed: () {
+//                     // Handle icon press if needed
+//                   },
+//                 )
+//               : GestureDetector(
+//                   onTap: () {
+//                     Navigator.push(
+//                       context,
+//                       MaterialPageRoute(
+//                         builder: (context) => ImageScreen(_imagePath!),
+//                       ),
+//                     );
+//                   },
+//                   child: CircleAvatar(
+//                     backgroundImage: FileImage(File(_imagePath!)),
+//                     radius: 20,
+//                   ),
+//                 ),
+//           IconButton(
+//             icon: const Icon(Icons.settings),
+//             onPressed: () {
+//               Navigator.pushNamed(context, '/settings').then((_) {
+//                 // Navigate back from views page, increment additional text index
+//                 _saveAdditionalTextIndex(
+//                     (_additionalTextIndex + 1) % additionalTexts.length);
+//               });
+//               ;
+//             },
+//           ),
+//         ],
+//         title: const Text('Home Page'),
+//       ),
+//       body: isLoading
+//           ? const Center(
+//               child: CircularProgressIndicator(),
+//             )
+//           : SingleChildScrollView(
+//               child: Padding(
+//                 padding: const EdgeInsets.all(16.0),
+//                 child: Column(
+//                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+//                   children: [
+//                     if (_currentPosition != null && _currentAddress != null)
+//                       Column(
+//                         children: [
+//                           Text(
+//                             'Coordinates: ${_currentPosition!.latitude}, ${_currentPosition!.longitude}',
+//                             style: const TextStyle(fontSize: 16),
+//                           ),
+//                           const SizedBox(height: 8),
+//                           Text(
+//                             'Location: $_currentAddress',
+//                             style: const TextStyle(fontSize: 16),
+//                           ),
+//                           const SizedBox(height: 16),
+//                         ],
+//                       ),
+//                     Center(
+//                       child: Container(
+//                         height: 400,
+//                         width: 400,
+//                         child: PieChart(
+//                           PieChartData(
+//                             sections: [
+//                               PieChartSectionData(
+//                                 color: Colors.green,
+//                                 // value: yesInsideCount.toDouble(),
+//                                 badgeWidget: _buildIcon('Yes (Inside)'),
+//                                 badgePositionPercentageOffset: 0.7,
+//                                 radius: 60,
+//                               ),
+//                               PieChartSectionData(
+//                                 color: Colors.orange,
+//                                 // value: yesOutsideCount.toDouble(),
+//                                 badgeWidget: _buildIcon('Yes (Outside)'),
+//                                 badgePositionPercentageOffset: 0.5,
+//                                 radius: 50,
+//                               ),
+//                               PieChartSectionData(
+//                                 color: Colors.red,
+//                                 // value: noCount.toDouble(),
+//                                 badgeWidget: _buildIcon('No'),
+//                                 badgePositionPercentageOffset: 0.5,
+//                                 radius: 50,
+//                               ),
+//                             ],
+//                             centerSpaceRadius: 50,
+//                             sectionsSpace: 2,
+//                           ),
+//                         ),
+//                       ),
+//                     ),
+//                     const SizedBox(height: 16),
+//                     Column(
+//                       children: [
+//                         _buildLegendItem(Colors.green, 'Yes (Inside)'),
+//                         _buildLegendItem(Colors.orange, 'Yes (Outside)'),
+//                         _buildLegendItem(Colors.red, 'No'),
+//                       ],
+//                     ),
+//                     const SizedBox(height: 16),
+//                     const Text(
+//                       'CLASSIE',
+//                       style: TextStyle(
+//                           fontSize: 40,
+//                           fontWeight: FontWeight.bold,
+//                           fontStyle: FontStyle.italic),
+//                     ),
+//                     const SizedBox(height: 16),
+//                     Text(
+//                       _additionalTextIndex < additionalTexts.length
+//                           ? additionalTexts[_additionalTextIndex]
+//                           : '',
+//                       style: const TextStyle(
+//                         fontSize: 20,
+//                       ),
+//                     ),
+//                   ],
+//                 ),
+//               ),
+//             ),
+//       floatingActionButton: FloatingActionButton(
+//         splashColor: Colors.purple,
+//         onPressed: () {
+//           Navigator.pushNamed(context, '/views').then((_) {
+//             // Navigate back from views page, increment additional text index
+//             _saveAdditionalTextIndex(
+//                 (_additionalTextIndex + 1) % additionalTexts.length);
+//           });
+//         },
+//         child: const Column(
+//           children: [
+//             SizedBox(
+//               height: 3,
+//             ),
+//             Icon(Icons.remove_red_eye),
+//             SizedBox(
+//               height: 3,
+//             ),
+//             Text('Records')
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }
+
+// import 'dart:convert';
+// import 'dart:io';
+// import 'package:attendance_mobile_app/Pages/pie_chart_records_page.dart';
+// import 'package:fl_chart/fl_chart.dart';
+// import 'package:flutter/material.dart';
+// import 'package:geocoding/geocoding.dart';
+// import 'package:geolocator/geolocator.dart';
+// import 'package:shared_preferences/shared_preferences.dart';
+//
+// class HomePage extends StatefulWidget {
+//   static final GlobalKey<_HomePageState> homePageKey =
+//       GlobalKey<_HomePageState>();
+//
+//   const HomePage({Key? key}) : super(key: key);
+//
+//   @override
+//   State<HomePage> createState() => _HomePageState();
+// }
+//
+// class _HomePageState extends State<HomePage> {
+//   int yesInsideCount = 0;
+//   int yesOutsideCount = 0;
+//   int noCount = 0;
+//   bool isLoading = true;
+//   int _additionalTextIndex = 0; // Index to track which text to display
+//
+//   Position? _currentPosition;
+//   String? _currentAddress;
+//
+//   String? _imagePath;
+//
+//   List<String> additionalTexts = [
+//     'Customer Sensitivity',
+//     'Leadership',
+//     'Accountability',
+//     'Speed',
+//     'Shared Vision and Mindset',
+//     'Innovation',
+//     'Effectiveness',
+//   ];
+//
+//   static Future<void> showMyDialog() async {
+//     final context = HomePage.homePageKey.currentContext;
+//
+//     if (context != null) {
+//       return showDialog<void>(
+//         context: context,
+//         barrierDismissible: false, // user must tap button!
+//         builder: (BuildContext context) {
+//           return AlertDialog(
+//             title: const Text('AlertDialog Title'),
+//             content: const SingleChildScrollView(
+//               child: ListBody(
+//                 children: <Widget>[
+//                   Text('This is a demo alert dialog.'),
+//                   Text('Would you like to approve of this message?'),
+//                 ],
+//               ),
+//             ),
+//             actions: <Widget>[
+//               TextButton(
+//                 child: const Text('Approve'),
+//                 onPressed: () {
+//                   Navigator.of(context).pop();
+//                 },
+//               ),
+//             ],
+//           );
+//         },
+//       );
+//     } else {
+//       print('No context available.');
+//     }
+//   }
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     // NotificationService.showNotificationAt5(
+//     //     "Attendance Notice!", "Have you closed?");
+//     _loadProfileImage();
+//     _loadAdditionalTextIndex(); // Load stored index on initialization
+//     _saveUserDetails();
+//     _getCurrentLocation();
+//     _loadRecordsFromSharedPreferences().then((records) {
+//       _updateCounts(records);
+//       setState(() {
+//         isLoading = false;
+//       });
+//     });
+//   }
+//
+//   Future<void> _getCurrentLocation() async {
+//     bool serviceEnabled;
+//     LocationPermission permission;
+//
+//     serviceEnabled = await Geolocator.isLocationServiceEnabled();
+//     if (!serviceEnabled) {
+//       return Future.error('Location services are disabled.');
+//     }
+//
+//     permission = await Geolocator.checkPermission();
+//     if (permission == LocationPermission.denied) {
+//       permission = await Geolocator.requestPermission();
+//       if (permission == LocationPermission.denied) {
+//         return Future.error('Location permissions are denied');
+//       }
+//     }
+//
+//     if (permission == LocationPermission.deniedForever) {
+//       return Future.error(
+//           'Location permissions are permanently denied, we cannot request permissions.');
+//     }
+//
+//     Position position = await Geolocator.getCurrentPosition(
+//         desiredAccuracy: LocationAccuracy.high);
+//     setState(() {
+//       _currentPosition = position;
+//     });
+//
+//     // Use Geocoding to get the address
+//     List<Placemark> placemarks =
+//         await placemarkFromCoordinates(position.latitude, position.longitude);
+//     Placemark place = placemarks[0];
+//     setState(() {
+//       _currentAddress =
+//           "${place.locality}, ${place.postalCode}, ${place.country}";
+//     });
+//   }
+//
+//   String? _userName;
+//   String? _userEmail;
+//   String? _userPassword;
+//
+//   Future<void> _saveUserDetails() async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     setState(() {
+//       _userName = prefs.getString('userName');
+//       _userEmail = prefs.getString('userEmail');
+//       _userPassword = prefs.getString('userPassword');
+//     });
+//   }
+//
+//   Future<List<Map<String, dynamic>>> _loadRecordsFromSharedPreferences() async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     String? jsonString = prefs.getString('userRecords');
+//     if (jsonString == null) {
+//       return [];
+//     } else {
+//       List<dynamic> jsonList = jsonDecode(jsonString);
+//       return jsonList.map((item) => Map<String, dynamic>.from(item)).toList();
+//     }
+//   }
+//
+//   void _updateCounts(List<Map<String, dynamic>> records) {
+//     int tempYesInsideCount = 0;
+//     int tempYesOutsideCount = 0;
+//     int tempNoCount = 0;
+//
+//     for (var record in records) {
+//       switch (record['action']) {
+//         case 'Yes I am at work':
+//           tempYesInsideCount++;
+//           break;
+//         case 'No I am not at work (Outside)':
+//           tempYesOutsideCount++;
+//           break;
+//         case 'No I am not at work':
+//           tempNoCount++;
+//           break;
+//         default:
+//           // Handle unexpected cases if necessary
+//           break;
+//       }
+//     }
+//
+//     setState(() {
+//       yesInsideCount = tempYesInsideCount;
+//       yesOutsideCount = tempYesOutsideCount;
+//       noCount = tempNoCount;
+//     });
+//   }
+//
+//   Widget _buildIcon(String title) {
+//     IconData iconData;
+//     Color color;
+//
+//     switch (title) {
+//       case 'Yes (Inside)':
+//         iconData = Icons.check_circle;
+//         color = Colors.white;
+//         break;
+//       case 'Yes (Outside)':
+//         iconData = Icons.location_off;
+//         color = Colors.white;
+//         break;
+//       case 'No':
+//         iconData = Icons.cancel;
+//         color = Colors.white;
+//         break;
+//       default:
+//         iconData = Icons.help;
+//         color = Colors.grey;
+//     }
+//
+//     return Icon(iconData, color: color, size: 24);
+//   }
+//
+//   Widget _buildLegendItem(Color color, String text) {
+//     return Row(
+//       children: [
+//         Container(
+//           width: 16,
+//           height: 16,
+//           color: color,
+//         ),
+//         const SizedBox(width: 8),
+//         Text(text),
+//       ],
+//     );
+//   }
+//
+//   Future<void> _loadAdditionalTextIndex() async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     setState(() {
+//       _additionalTextIndex = prefs.getInt('additionalTextIndex') ?? 0;
+//     });
+//   }
+//
+//   Future<void> _saveAdditionalTextIndex(int newIndex) async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     await prefs.setInt('additionalTextIndex', newIndex);
+//     setState(() {
+//       _additionalTextIndex = newIndex;
+//     });
+//   }
+//
+//   Future<void> _loadProfileImage() async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     setState(() {
+//       _imagePath = prefs.getString('profile_image');
+//     });
+//   }
+//
+//   void _onSectionTapped(String section) {
+//     Navigator.push(
+//       context,
+//       MaterialPageRoute(
+//         builder: (context) => RecordsPage(
+//           section: section,
+//           records: [],
+//         ),
+//       ),
+//     );
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         automaticallyImplyLeading: false,
+//         actions: [
+//           _imagePath == null
+//               ? IconButton(
+//                   icon: const Icon(Icons.person),
+//                   onPressed: () {
+//                     // Handle icon press if needed
+//                   },
+//                 )
+//               : GestureDetector(
+//                   onTap: () {
+//                     Navigator.push(
+//                       context,
+//                       MaterialPageRoute(
+//                         builder: (context) => ImageScreen(_imagePath!),
+//                       ),
+//                     );
+//                   },
+//                   child: CircleAvatar(
+//                     backgroundImage: FileImage(File(_imagePath!)),
+//                     radius: 20,
+//                   ),
+//                 ),
+//           IconButton(
+//             icon: const Icon(Icons.settings),
+//             onPressed: () {
+//               Navigator.pushNamed(context, '/settings').then((_) {
+//                 // Navigate back from views page, increment additional text index
+//                 _saveAdditionalTextIndex(
+//                     (_additionalTextIndex + 1) % additionalTexts.length);
+//               });
+//             },
+//           ),
+//         ],
+//         title: const Text('Home Page'),
+//       ),
+//       body: isLoading
+//           ? const Center(
+//               child: CircularProgressIndicator(),
+//             )
+//           : SingleChildScrollView(
+//               child: Padding(
+//                 padding: const EdgeInsets.all(16.0),
+//                 child: Column(
+//                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+//                   children: [
+//                     if (_currentPosition != null && _currentAddress != null)
+//                       Column(
+//                         children: [
+//                           Text(
+//                             'Coordinates: ${_currentPosition!.latitude}, ${_currentPosition!.longitude}',
+//                             style: const TextStyle(fontSize: 16),
+//                           ),
+//                           const SizedBox(height: 8),
+//                           Text(
+//                             'Location: $_currentAddress',
+//                             style: const TextStyle(fontSize: 16),
+//                           ),
+//                           const SizedBox(height: 16),
+//                         ],
+//                       ),
+//                     Center(
+//                       child: Container(
+//                         height: 400,
+//                         width: 400,
+//                         child: PieChart(
+//                           PieChartData(
+//                             sections: [
+//                               PieChartSectionData(
+//                                 color: Colors.green,
+//                                 value: yesInsideCount.toDouble(),
+//                                 badgeWidget: GestureDetector(
+//                                   onTap: () => _onSectionTapped('Yes (Inside)'),
+//                                   child: _buildIcon('Yes (Inside)'),
+//                                 ),
+//                                 radius: 80,
+//                                 title: 'Yes (Inside)',
+//                                 titleStyle: const TextStyle(
+//                                   fontSize: 16,
+//                                   fontWeight: FontWeight.bold,
+//                                   color: Colors.white,
+//                                 ),
+//                               ),
+//                               PieChartSectionData(
+//                                 color: Colors.orange,
+//                                 value: yesOutsideCount.toDouble(),
+//                                 badgeWidget: GestureDetector(
+//                                   onTap: () =>
+//                                       _onSectionTapped('Yes (Outside)'),
+//                                   child: _buildIcon('Yes (Outside)'),
+//                                 ),
+//                                 radius: 80,
+//                                 title: 'Yes (Outside)',
+//                                 titleStyle: const TextStyle(
+//                                   fontSize: 16,
+//                                   fontWeight: FontWeight.bold,
+//                                   color: Colors.white,
+//                                 ),
+//                               ),
+//                               PieChartSectionData(
+//                                 color: Colors.red,
+//                                 value: noCount.toDouble(),
+//                                 badgeWidget: GestureDetector(
+//                                   onTap: () => _onSectionTapped('No'),
+//                                   child: _buildIcon('No'),
+//                                 ),
+//                                 radius: 80,
+//                                 title: 'No',
+//                                 titleStyle: const TextStyle(
+//                                   fontSize: 16,
+//                                   fontWeight: FontWeight.bold,
+//                                   color: Colors.white,
+//                                 ),
+//                               ),
+//                             ],
+//                             centerSpaceRadius: 50,
+//                             borderData: FlBorderData(show: false),
+//                           ),
+//                         ),
+//                       ),
+//                     ),
+//                     const SizedBox(height: 16),
+//                     Column(
+//                       children: [
+//                         _buildLegendItem(Colors.green, 'Yes (Inside)'),
+//                         _buildLegendItem(Colors.orange, 'Yes (Outside)'),
+//                         _buildLegendItem(Colors.red, 'No'),
+//                       ],
+//                     ),
+//                     const SizedBox(height: 16),
+//                     const Text(
+//                       'Here is some additional text:',
+//                       style:
+//                           TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+//                     ),
+//                     const SizedBox(height: 16),
+//                     Text(
+//                       additionalTexts[_additionalTextIndex],
+//                       style: const TextStyle(fontSize: 18),
+//                     ),
+//                   ],
+//                 ),
+//               ),
+//             ),
+//       floatingActionButton: FloatingActionButton(
+//         onPressed: () {},
+//         child: const Column(
+//           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+//           children: [Icon(Icons.remove_red_eye_rounded), Padding(
+//             padding: EdgeInsets.fromLTRB(2, 0, 1, 1),
+//             child: Text('Records'),
+//           )],
+//         ),
+//       ),
+//     );
+//   }
+// }
+//
+
+// import 'dart:convert';
+// import 'dart:io';
+// import 'package:attendance_mobile_app/Pages/pie_chart_records_page.dart';
+// import 'package:fl_chart/fl_chart.dart';
+// import 'package:flutter/material.dart';
+// import 'package:geocoding/geocoding.dart';
+// import 'package:geolocator/geolocator.dart';
+// import 'package:shared_preferences/shared_preferences.dart';
+//
+// class HomePage extends StatefulWidget {
+//   static final GlobalKey<_HomePageState> homePageKey =
+//   GlobalKey<_HomePageState>();
+//
+//   const HomePage({Key? key}) : super(key: key);
+//
+//   @override
+//   State<HomePage> createState() => _HomePageState();
+// }
+//
+// class _HomePageState extends State<HomePage> {
+//   int yesInsideCount = 0;
+//   int yesOutsideCount = 0;
+//   int noCount = 0;
+//   bool isLoading = true;
+//   int _additionalTextIndex = 0;
+//
+//   Position? _currentPosition;
+//   String? _currentAddress;
+//   String? _imagePath;
+//
+//   List<String> additionalTexts = [
+//     'Customer Sensitivity',
+//     'Leadership',
+//     'Accountability',
+//     'Speed',
+//     'Shared Vision and Mindset',
+//     'Innovation',
+//     'Effectiveness',
+//   ];
+//
+//   static Future<void> showMyDialog() async {
+//     final context = HomePage.homePageKey.currentContext;
+//     if (context != null) {
+//       return showDialog<void>(
+//         context: context,
+//         barrierDismissible: false,
+//         builder: (BuildContext context) {
+//           return AlertDialog(
+//             title: const Text('AlertDialog Title'),
+//             content: const SingleChildScrollView(
+//               child: ListBody(
+//                 children: <Widget>[
+//                   Text('This is a demo alert dialog.'),
+//                   Text('Would you like to approve of this message?'),
+//                 ],
+//               ),
+//             ),
+//             actions: <Widget>[
+//               TextButton(
+//                 child: const Text('Approve'),
+//                 onPressed: () {
+//                   Navigator.of(context).pop();
+//                 },
+//               ),
+//             ],
+//           );
+//         },
+//       );
+//     } else {
+//       print('No context available.');
+//     }
+//   }
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     _loadProfileImage();
+//     _loadAdditionalTextIndex();
+//     _saveUserDetails();
+//     _getCurrentLocation();
+//     _loadRecordsFromSharedPreferences().then((records) {
+//       _updateCounts(records);
+//       setState(() {
+//         isLoading = false;
+//       });
+//     });
+//   }
+//
+//   Future<void> _getCurrentLocation() async {
+//     bool serviceEnabled;
+//     LocationPermission permission;
+//
+//     serviceEnabled = await Geolocator.isLocationServiceEnabled();
+//     if (!serviceEnabled) {
+//       return Future.error('Location services are disabled.');
+//     }
+//
+//     permission = await Geolocator.checkPermission();
+//     if (permission == LocationPermission.denied) {
+//       permission = await Geolocator.requestPermission();
+//       if (permission == LocationPermission.denied) {
+//         return Future.error('Location permissions are denied');
+//       }
+//     }
+//
+//     if (permission == LocationPermission.deniedForever) {
+//       return Future.error(
+//           'Location permissions are permanently denied, we cannot request permissions.');
+//     }
+//
+//     Position position = await Geolocator.getCurrentPosition(
+//         desiredAccuracy: LocationAccuracy.high);
+//     setState(() {
+//       _currentPosition = position;
+//     });
+//
+//     List<Placemark> placemarks =
+//     await placemarkFromCoordinates(position.latitude, position.longitude);
+//     Placemark place = placemarks[0];
+//     setState(() {
+//       _currentAddress =
+//       "${place.locality}, ${place.postalCode}, ${place.country}";
+//     });
+//   }
+//
+//   String? _userName;
+//   String? _userEmail;
+//   String? _userPassword;
+//
+//   Future<void> _saveUserDetails() async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     setState(() {
+//       _userName = prefs.getString('userName');
+//       _userEmail = prefs.getString('userEmail');
+//       _userPassword = prefs.getString('userPassword');
+//     });
+//   }
+//
+//   Future<List<Map<String, dynamic>>> _loadRecordsFromSharedPreferences() async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     String? jsonString = prefs.getString('userRecords');
+//     if (jsonString == null) {
+//       return [];
+//     } else {
+//       List<dynamic> jsonList = jsonDecode(jsonString);
+//       return jsonList.map((item) => Map<String, dynamic>.from(item)).toList();
+//     }
+//   }
+//
+//   void _updateCounts(List<Map<String, dynamic>> records) {
+//     int tempYesInsideCount = 0;
+//     int tempYesOutsideCount = 0;
+//     int tempNoCount = 0;
+//
+//     for (var record in records) {
+//       switch (record['action']) {
+//         case 'Yes I am at work':
+//           tempYesInsideCount++;
+//           break;
+//         case 'No I am not at work (Outside)':
+//           tempYesOutsideCount++;
+//           break;
+//         case 'No I am not at work':
+//           tempNoCount++;
+//           break;
+//         default:
+//           break;
+//       }
+//     }
+//
+//     setState(() {
+//       yesInsideCount = tempYesInsideCount;
+//       yesOutsideCount = tempYesOutsideCount;
+//       noCount = tempNoCount;
+//     });
+//   }
+//
+//   Widget _buildIcon(String title) {
+//     IconData iconData;
+//     Color color;
+//
+//     switch (title) {
+//       case 'Yes (Inside)':
+//         iconData = Icons.check_circle;
+//         color = Colors.white;
+//         break;
+//       case 'Yes (Outside)':
+//         iconData = Icons.location_off;
+//         color = Colors.white;
+//         break;
+//       case 'No':
+//         iconData = Icons.cancel;
+//         color = Colors.white;
+//         break;
+//       default:
+//         iconData = Icons.help;
+//         color = Colors.grey;
+//     }
+//
+//     return Icon(iconData, color: color, size: 24);
+//   }
+//
+//   Widget _buildLegendItem(Color color, String text) {
+//     return Row(
+//       children: [
+//         Container(
+//           width: 16,
+//           height: 16,
+//           color: color,
+//         ),
+//         const SizedBox(width: 8),
+//         Text(text),
+//       ],
+//     );
+//   }
+//
+//   Future<void> _loadAdditionalTextIndex() async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     setState(() {
+//       _additionalTextIndex = prefs.getInt('additionalTextIndex') ?? 0;
+//     });
+//   }
+//
+//   Future<void> _saveAdditionalTextIndex(int newIndex) async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     await prefs.setInt('additionalTextIndex', newIndex);
+//     setState(() {
+//       _additionalTextIndex = newIndex;
+//     });
+//   }
+//
+//   Future<void> _loadProfileImage() async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     setState(() {
+//       _imagePath = prefs.getString('profile_image');
+//     });
+//   }
+//
+//   void _onSectionTapped(String section) {
+//     Navigator.push(
+//       context,
+//       MaterialPageRoute(
+//         builder: (context) => RecordsPage(
+//           section: section,
+//           records: [],
+//         ),
+//       ),
+//     );
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         automaticallyImplyLeading: false,
+//         actions: [
+//           _imagePath == null
+//               ? IconButton(
+//             icon: const Icon(Icons.person),
+//             onPressed: () {
+//               // Handle icon press if needed
+//             },
+//           )
+//               : GestureDetector(
+//             onTap: () {
+//               Navigator.push(
+//                 context,
+//                 MaterialPageRoute(
+//                   builder: (context) => ImageScreen(_imagePath!),
+//                 ),
+//               );
+//             },
+//             child: CircleAvatar(
+//               backgroundImage: FileImage(File(_imagePath!)),
+//               radius: 20,
+//             ),
+//           ),
+//           IconButton(
+//             icon: const Icon(Icons.settings),
+//             onPressed: () {
+//               Navigator.pushNamed(context, '/settings').then((_) {
+//                 _saveAdditionalTextIndex(
+//                     (_additionalTextIndex + 1) % additionalTexts.length);
+//               });
+//             },
+//           ),
+//         ],
+//         title: const Text('Home Page'),
+//       ),
+//       body: isLoading
+//           ? const Center(
+//         child: CircularProgressIndicator(),
+//       )
+//           : SingleChildScrollView(
+//         child: Padding(
+//           padding: const EdgeInsets.all(16.0),
+//           child: Column(
+//             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+//             children: [
+//               if (_currentPosition != null && _currentAddress != null)
+//                 Column(
+//                   children: [
+//                     Text(
+//                       'Coordinates: ${_currentPosition!.latitude}, ${_currentPosition!.longitude}',
+//                       style: const TextStyle(fontSize: 16),
+//                     ),
+//                     const SizedBox(height: 8),
+//                     Text(
+//                       'Location: $_currentAddress',
+//                       style: const TextStyle(fontSize: 16),
+//                     ),
+//                     const SizedBox(height: 16),
+//                   ],
+//                 ),
+//               Center(
+//                 child: GestureDetector(
+//                   onTap: () => _onSectionTapped('Yes (Inside)'),
+//                   child: Container(
+//                     height: 400,
+//                     width: 400,
+//                     child: PieChart(
+//                       PieChartData(
+//                         sections: [
+//                           PieChartSectionData(
+//                             color: Colors.green,
+//                             value: yesInsideCount.toDouble(),
+//                             badgeWidget: _buildIcon('Yes (Inside)'),
+//                             badgePositionPercentageOffset: 0.7,
+//                             radius: 60,
+//                           ),
+//                           PieChartSectionData(
+//                             color: Colors.orange,
+//                             value: yesOutsideCount.toDouble(),
+//                             badgeWidget: _buildIcon('Yes (Outside)'),
+//                             badgePositionPercentageOffset: 0.5,
+//                             radius: 50,
+//                           ),
+//                           PieChartSectionData(
+//                             color: Colors.red,
+//                             value: noCount.toDouble(),
+//                             badgeWidget: _buildIcon('No'),
+//                             badgePositionPercentageOffset: 0.5,
+//                             radius: 50,
+//                           ),
+//                         ],
+//                       ),
+//                     ),
+//                   ),
+//                 ),
+//               ),
+//               const SizedBox(height: 16),
+//               Column(
+//                 children: [
+//                   _buildLegendItem(Colors.green, 'Yes (Inside)'),
+//                   _buildLegendItem(Colors.orange, 'Yes (Outside)'),
+//                   _buildLegendItem(Colors.red, 'No'),
+//                 ],
+//               ),
+//               const SizedBox(height: 16),
+//               Text(
+//                 additionalTexts[_additionalTextIndex],
+//                 style: const TextStyle(fontSize: 16),
+//               ),
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
+//
+// class ThemeProvider with ChangeNotifier {
+//   bool _isDarkTheme = false;
+//
+//   bool get isDarkTheme => _isDarkTheme;
+//
+//   void toggleTheme() {
+//     _isDarkTheme = !_isDarkTheme;
+//     notifyListeners();
+//   }
+// }
+// //
+// class ImageScreen extends StatelessWidget {
+//   final String imagePath;
+//
+//   ImageScreen(this.imagePath);
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         automaticallyImplyLeading: false,
+//         leading: IconButton(
+//             onPressed: () {
+//               Navigator.pop(context);
+//             },
+//             icon: const Icon(Icons.arrow_back_ios)),
+//       ),
+//       body: Center(
+//         child: Image.file(File(imagePath)),
+//       ),
+//     );
+//   }
+// }
+//
+
+// import 'package:flutter/material.dart';
+// import 'package:shared_preferences/shared_preferences.dart';
+// import 'dart:convert';
+// import 'package:intl/intl.dart';
+//
+// class RecordsPage extends StatefulWidget {
+//   final String section;
+//
+//   RecordsPage({required this.section, required List records});
+//
+//   @override
+//   _RecordsPageState createState() => _RecordsPageState();
+// }
+//
+// class _RecordsPageState extends State<RecordsPage> {
+//   List<Map<String, dynamic>> records = [];
+//   bool isLoading = true;
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     _loadRecordsFromSharedPreferences().then((loadedRecords) {
+//       setState(() {
+//         records = _filterRecordsBySection(loadedRecords, widget.section);
+//         isLoading = false;
+//       });
+//     });
+//   }
+//
+//   Future<List<Map<String, dynamic>>> _loadRecordsFromSharedPreferences() async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     String? jsonString = prefs.getString('userRecords');
+//     if (jsonString == null) {
+//       return [];
+//     } else {
+//       List<dynamic> jsonList = jsonDecode(jsonString);
+//       return jsonList.map((item) => Map<String, dynamic>.from(item)).toList();
+//     }
+//   }
+//
+//   List<Map<String, dynamic>> _filterRecordsBySection(
+//       List<Map<String, dynamic>> records, String section) {
+//     switch (section) {
+//       case 'Yes (Inside)':
+//         return records
+//             .where((record) => record['action'] == 'Yes I am at work')
+//             .toList();
+//       case 'Yes (Outside)':
+//         return records
+//             .where((record) => record['action'] == 'No I am not at work (Outside)')
+//             .toList();
+//       case 'No':
+//         return records
+//             .where((record) => record['action'] == 'No I am not at work')
+//             .toList();
+//       default:
+//         return [];
+//     }
+//   }
+//
+//   String _getDayOfWeek(String? dateString) {
+//     if (dateString == null) return 'No Date';
+//     DateTime date = DateFormat('yyyy-MM-dd').parse(dateString);
+//     return DateFormat('EEEE').format(date); // EEEE gives the full day name
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: Text('Records for ${widget.section}'),
+//       ),
+//       body: isLoading
+//           ? const Center(child: CircularProgressIndicator())
+//           : ListView.builder(
+//         itemCount: records.length,
+//         itemBuilder: (context, index) {
+//           var record = records[index];
+//           String? date = record['date'];
+//           String dayOfWeek = _getDayOfWeek(date);
+//           return ListTile(
+//             title: Text(record['userName'] ?? 'No Name'),
+//             subtitle: Column(
+//               crossAxisAlignment: CrossAxisAlignment.start,
+//               children: [
+//                 Text(record['userEmail'] ?? 'No Email'),
+//                 if (date != null) Text(dayOfWeek),
+//               ],
+//             ),
+//             trailing: Text(date ?? 'No Date'),
+//           );
+//         },
+//       ),
+//     );
+//   }
+// }
+// import 'package:flutter/material.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:shared_preferences/shared_preferences.dart';
+// import 'package:geolocator/geolocator.dart';
+// import 'package:intl/intl.dart';
+//
+// class AttendanceNoticePage extends StatefulWidget {
+//   const AttendanceNoticePage({super.key});
+//
+//   @override
+//   _AttendanceNoticePageState createState() => _AttendanceNoticePageState();
+// }
+//
+// class _AttendanceNoticePageState extends State<AttendanceNoticePage> {
+//   String userName = 'Unknown User';
+//   String userEmail = 'Unknown Email';
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     _loadUserPreferences();
+//   }
+//
+//   Future<void> _loadUserPreferences() async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     setState(() {
+//       userName = prefs.getString('UserName') ?? 'Unknown User';
+//       userEmail = prefs.getString('userEmail') ?? 'Unknown Email';
+//     });
+//   }
+//
+//   Future<void> handleAction(String action) async {
+//     DateTime now = DateTime.now();
+//     int currentMonth = now.month;
+//     int currentYear = now.year;
+//     String currentDay = DateFormat('EEEE').format(now); // Get the day of the week
+//     String currentDayNumber = DateFormat('d').format(now); // Get the day number of the month
+//
+//     switch (action) {
+//       case 'Yes':
+//         await _handleYesButtonAction(currentDay, currentDayNumber, currentMonth, currentYear);
+//         break;
+//       case 'No':
+//         await _handleNoButtonAction(currentDay, currentDayNumber, currentMonth, currentYear);
+//         break;
+//       default:
+//         print('Unknown action');
+//     }
+//   }
+//
+//   Future<void> _handleYesButtonAction(String currentDay, String currentDayNumber, int currentMonth, int currentYear) async {
+//     Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+//     double targetLatitude = 5.6129311;
+//     double targetLongitude = -0.1823302;
+//     double radius = 100; // in meters
+//
+//     double distance = Geolocator.distanceBetween(
+//       position.latitude,
+//       position.longitude,
+//       targetLatitude,
+//       targetLongitude,
+//     );
+//
+//     String collectionName = distance <= radius ? 'yes_Inside' : 'yes_Outside';
+//     String actionText = distance <= radius ? 'Yes I am at work' : 'No I am not at work (Outside)';
+//
+//     await FirebaseFirestore.instance
+//         .collection('Records')
+//         .doc('Starting_time')
+//         .collection('$currentDayNumber-$currentMonth-$currentYear {$collectionName}')
+//         .add({
+//       'timestamp': Timestamp.fromDate(DateTime.now().toUtc()),
+//       'action': actionText,
+//       'dayOfWeek': currentDay,
+//       'userEmail': userEmail,
+//       'userName': userName,
+//     });
+//     print('Yes button clicked');
+//   }
+//
+//   Future<void> _handleNoButtonAction(String currentDay, String currentDayNumber, int currentMonth, int currentYear) async {
+//     await FirebaseFirestore.instance
+//         .collection('Records')
+//         .doc('Starting_time')
+//         .collection('$currentDayNumber-$currentMonth-$currentYear {no}')
+//         .add({
+//       'timestamp': Timestamp.fromDate(DateTime.now().toUtc()),
+//       'action': 'No I am not at work',
+//       'dayOfWeek': currentDay,
+//       'userEmail': userEmail,
+//       'userName': userName,
+//     });
+//     print('No button clicked');
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: Text('Attendance Notice'),
+//       ),
+//       body: Padding(
+//         padding: const EdgeInsets.all(16.0),
+//         child: Column(
+//           mainAxisAlignment: MainAxisAlignment.center,
+//           children: [
+//             Text(
+//               'Are you at work?',
+//               style: TextStyle(fontSize: 24),
+//             ),
+//             SizedBox(height: 20),
+//             ElevatedButton(
+//               onPressed: () => handleAction('Yes'),
+//               child: Text('Yes'),
+//             ),
+//             ElevatedButton(
+//               onPressed: () => handleAction('No'),
+//               child: Text('No'),
+//             ),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }
+
+// import 'package:flutter/material.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:shared_preferences/shared_preferences.dart';
+// import 'package:geolocator/geolocator.dart';
+// import 'package:intl/intl.dart';
+//
+// class AttendanceNoticePage extends StatefulWidget {
+//   const AttendanceNoticePage({super.key});
+//
+//   @override
+//   _AttendanceNoticePageState createState() => _AttendanceNoticePageState();
+// }
+//
+// class _AttendanceNoticePageState extends State<AttendanceNoticePage> {
+//   String userName = 'Unknown User';
+//   String userEmail = 'Unknown Email';
+//   bool isWithinAllowedTime = false;
+//   bool hasCheckedIn = false;
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     _loadUserPreferences();
+//     _checkAllowedTime();
+//   }
+//
+//   Future<void> _loadUserPreferences() async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     setState(() {
+//       userName = prefs.getString('UserName') ?? 'Unknown User';
+//       userEmail = prefs.getString('userEmail') ?? 'Unknown Email';
+//     });
+//   }
+//
+//   void _checkAllowedTime() {
+//     DateTime now = DateTime.now();
+//     DateTime startTime = DateTime(now.year, now.month, now.day, 8);
+//     DateTime endTime = startTime.add(const Duration(hours: 4));
+//     setState(() {
+//       isWithinAllowedTime = now.isAfter(startTime) && now.isBefore(endTime);
+//     });
+//   }
+//
+//   Future<void> handleAction(String action) async {
+//     DateTime now = DateTime.now();
+//     int currentMonth = now.month;
+//     int currentYear = now.year;
+//     String currentDay = DateFormat('EEEE').format(now); // Get the day of the week
+//     String currentDayNumber = DateFormat('d').format(now); // Get the day number of the month
+//
+//     switch (action) {
+//       case 'Yes':
+//         await _handleYesButtonAction(currentDay, currentDayNumber, currentMonth, currentYear);
+//         break;
+//       case 'No':
+//         await _handleNoButtonAction(currentDay, currentDayNumber, currentMonth, currentYear);
+//         break;
+//       default:
+//         print('Unknown action');
+//     }
+//
+//     setState(() {
+//       hasCheckedIn = true;
+//     });
+//   }
+//
+//   Future<void> _handleYesButtonAction(String currentDay, String currentDayNumber, int currentMonth, int currentYear) async {
+//     Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+//     double targetLatitude = 5.6129311;
+//     double targetLongitude = -0.1823302;
+//     double radius = 100; // in meters
+//
+//     double distance = Geolocator.distanceBetween(
+//       position.latitude,
+//       position.longitude,
+//       targetLatitude,
+//       targetLongitude,
+//     );
+//
+//     String collectionName = distance <= radius ? 'yes_Inside' : 'yes_Outside';
+//     String actionText = distance <= radius ? 'Yes I am at work' : 'No I am not at work (Outside)';
+//
+//     await FirebaseFirestore.instance
+//         .collection('Records')
+//         .doc('Starting_time')
+//         .collection('$currentDayNumber-$currentMonth-$currentYear {$collectionName}')
+//         .add({
+//       'timestamp': Timestamp.fromDate(DateTime.now().toUtc()),
+//       'action': actionText,
+//       'dayOfWeek': currentDay,
+//       'userEmail': userEmail,
+//       'userName': userName,
+//     });
+//     print('Yes button clicked');
+//   }
+//
+//   Future<void> _handleNoButtonAction(String currentDay, String currentDayNumber, int currentMonth, int currentYear) async {
+//     await FirebaseFirestore.instance
+//         .collection('Records')
+//         .doc('Starting_time')
+//         .collection('$currentDayNumber-$currentMonth-$currentYear {no}')
+//         .add({
+//       'timestamp': Timestamp.fromDate(DateTime.now().toUtc()),
+//       'action': 'No I am not at work',
+//       'dayOfWeek': currentDay,
+//       'userEmail': userEmail,
+//       'userName': userName,
+//     });
+//     print('No button clicked');
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: const Text('Check In /Check Out'),
+//       ),
+//       body: Center(
+//         child: Padding(
+//           padding: const EdgeInsets.all(16.0),
+//           child: Column(
+//             mainAxisAlignment: MainAxisAlignment.center,
+//             children: [
+//               if (!hasCheckedIn) ...[
+//                 const Text(
+//                   'Attendance Notice!',
+//                   style: TextStyle(fontSize: 34),
+//                 ),
+//                 const SizedBox(height: 20),
+//                 const Text(
+//                   'Are you at work?',
+//                   style: TextStyle(fontSize: 24),
+//                 ),
+//                 const SizedBox(height: 20),
+//               ],
+//               ElevatedButton(
+//                 onPressed: isWithinAllowedTime && !hasCheckedIn ? () => handleAction('Yes') : null,
+//                 child: const Text('Yes'),
+//               ),
+//               ElevatedButton(
+//                 onPressed: isWithinAllowedTime && !hasCheckedIn ? () => handleAction('No') : null,
+//                 child: const Text('No'),
+//               ),
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
+//
+// import 'package:flutter/material.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:shared_preferences/shared_preferences.dart';
+// import 'package:geolocator/geolocator.dart';
+// import 'package:intl/intl.dart';
+//
+// class AttendanceNoticePage extends StatefulWidget {
+//   const AttendanceNoticePage({super.key});
+//
+//   @override
+//   _AttendanceNoticePageState createState() => _AttendanceNoticePageState();
+// }
+//
+// class _AttendanceNoticePageState extends State<AttendanceNoticePage> {
+//   String userName = 'Unknown User';
+//   String userEmail = 'Unknown Email';
+//   bool isWithinAllowedTime = false;
+//   bool hasCheckedIn = false;
+//   bool isAfterNoon = false;
+//   bool isAfterWorkTime = false;
+//   bool hasLeftWork = false;
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     _loadUserPreferences();
+//     _checkAllowedTime();
+//     _checkAfterNoon();
+//     _checkAfterWorkTime();
+//   }
+//
+//   Future<void> _loadUserPreferences() async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     setState(() {
+//       userName = prefs.getString('UserName') ?? 'Unknown User';
+//       userEmail = prefs.getString('userEmail') ?? 'Unknown Email';
+//     });
+//   }
+//
+//   void _checkAllowedTime() {
+//     DateTime now = DateTime.now();
+//     DateTime startTime = DateTime(now.year, now.month, now.day, 8);
+//     DateTime endTime = startTime.add(const Duration(hours: 4));
+//     setState(() {
+//       isWithinAllowedTime = now.isAfter(startTime) && now.isBefore(endTime);
+//     });
+//   }
+//
+//   void _checkAfterNoon() {
+//     DateTime now = DateTime.now();
+//     DateTime noon = DateTime(now.year, now.month, now.day, 12);
+//     setState(() {
+//       isAfterNoon = now.isAfter(noon);
+//     });
+//   }
+//
+//   void _checkAfterWorkTime() {
+//     DateTime now = DateTime.now();
+//     DateTime workTime = DateTime(now.year, now.month, now.day, 17);
+//     DateTime endTime = workTime.add(const Duration(hours: 4));
+//     setState(() {
+//       isAfterWorkTime = now.isAfter(workTime) && now.isBefore(endTime);
+//     });
+//   }
+//
+//   Future<void> handleAction(String action, String type) async {
+//     DateTime now = DateTime.now();
+//     int currentMonth = now.month;
+//     int currentYear = now.year;
+//     String currentDay = DateFormat('EEEE').format(now); // Get the day of the week
+//     String currentDayNumber = DateFormat('d').format(now); // Get the day number of the month
+//
+//     switch (action) {
+//       case 'Yes':
+//         if (type == 'start') {
+//           await _handleYesButtonAction(currentDay, currentDayNumber, currentMonth, currentYear);
+//         } else {
+//           await _handleYesLeaveButtonAction(currentDay, currentDayNumber, currentMonth, currentYear);
+//         }
+//         break;
+//       case 'No':
+//         if (type == 'start') {
+//           await _handleNoButtonAction(currentDay, currentDayNumber, currentMonth, currentYear);
+//         } else {
+//           await _handleNoLeaveButtonAction(currentDay, currentDayNumber, currentMonth, currentYear);
+//         }
+//         break;
+//       default:
+//         print('Unknown action');
+//     }
+//
+//     if (type == 'start') {
+//       setState(() {
+//         hasCheckedIn = true;
+//       });
+//     } else {
+//       setState(() {
+//         hasLeftWork = true;
+//       });
+//     }
+//   }
+//
+//   Future<void> _handleYesButtonAction(String currentDay, String currentDayNumber, int currentMonth, int currentYear) async {
+//     Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+//     double targetLatitude = 5.6129311;
+//     double targetLongitude = -0.1823302;
+//     double radius = 100; // in meters
+//
+//     double distance = Geolocator.distanceBetween(
+//       position.latitude,
+//       position.longitude,
+//       targetLatitude,
+//       targetLongitude,
+//     );
+//
+//     String collectionName = distance <= radius ? 'yes_Inside' : 'yes_Outside';
+//     String actionText = distance <= radius ? 'Yes I am at work' : 'No I am not at work (Outside)';
+//
+//     await FirebaseFirestore.instance
+//         .collection('Records')
+//         .doc('Starting_time')
+//         .collection('$currentDayNumber-$currentMonth-$currentYear {$collectionName}')
+//         .add({
+//       'timestamp': Timestamp.fromDate(DateTime.now().toUtc()),
+//       'action': actionText,
+//       'dayOfWeek': currentDay,
+//       'userEmail': userEmail,
+//       'userName': userName,
+//     });
+//     print('Yes button clicked');
+//   }
+//
+//   Future<void> _handleNoButtonAction(String currentDay, String currentDayNumber, int currentMonth, int currentYear) async {
+//     await FirebaseFirestore.instance
+//         .collection('Records')
+//         .doc('Starting_time')
+//         .collection('$currentDayNumber-$currentMonth-$currentYear {no}')
+//         .add({
+//       'timestamp': Timestamp.fromDate(DateTime.now().toUtc()),
+//       'action': 'No I am not at work',
+//       'dayOfWeek': currentDay,
+//       'userEmail': userEmail,
+//       'userName': userName,
+//     });
+//     print('No button clicked');
+//   }
+//
+//   Future<void> _handleYesLeaveButtonAction(String currentDay, String currentDayNumber, int currentMonth, int currentYear) async {
+//     await FirebaseFirestore.instance
+//         .collection('ClosingRecords')
+//         .doc('Closing_time')
+//         .collection('yes_Closed')
+//         .add({
+//       'timestamp': Timestamp.fromDate(DateTime.now().toUtc()),
+//       'action': 'Yes I have left work',
+//       'dayOfWeek': currentDay,
+//       'userEmail': userEmail,
+//       'userName': userName,
+//     });
+//     print('Yes leave button clicked');
+//   }
+//
+//   Future<void> _handleNoLeaveButtonAction(String currentDay, String currentDayNumber, int currentMonth, int currentYear) async {
+//     await FirebaseFirestore.instance
+//         .collection('ClosingRecords')
+//         .doc('Closing_time')
+//         .collection('no_Closed')
+//         .add({
+//       'timestamp': Timestamp.fromDate(DateTime.now().toUtc()),
+//       'action': 'No I have not left work',
+//       'dayOfWeek': currentDay,
+//       'userEmail': userEmail,
+//       'userName': userName,
+//     });
+//     print('No leave button clicked');
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: const Text('Attendance Notice'),
+//       ),
+//       body: Center(
+//         child: Padding(
+//           padding: const EdgeInsets.all(16.0),
+//           child: Column(
+//             mainAxisAlignment: MainAxisAlignment.center,
+//             children: [
+//               if (!hasCheckedIn && isWithinAllowedTime) ...[
+//                 const Text(
+//                   'Are you at work?',
+//                   style: TextStyle(fontSize: 24),
+//                 ),
+//                 const SizedBox(height: 20),
+//                 ElevatedButton(
+//                   onPressed: isWithinAllowedTime && !hasCheckedIn ? () => handleAction('Yes', 'start') : null,
+//                   child: const Text('Yes'),
+//                 ),
+//                 ElevatedButton(
+//                   onPressed: isWithinAllowedTime && !hasCheckedIn ? () => handleAction('No', 'start') : null,
+//                   child: const Text('No'),
+//                 ),
+//               ],
+//               if (isAfterNoon && !hasLeftWork && isAfterWorkTime) ...[
+//                 const Text(
+//                   'Attendance Notice!',
+//                   style: TextStyle(fontSize: 24),
+//                 ),
+//                 const SizedBox(height: 20),
+//                 const Text(
+//                   'Have you left work?',
+//                   style: TextStyle(fontSize: 24),
+//                 ),
+//                 const SizedBox(height: 20),
+//                 ElevatedButton(
+//                   onPressed: isAfterWorkTime && !hasLeftWork ? () => handleAction('Yes', 'end') : null,
+//                   child: const Text('Yes'),
+//                 ),
+//                 ElevatedButton(
+//                   onPressed: isAfterWorkTime && !hasLeftWork ? () => handleAction('No', 'end') : null,
+//                   child: const Text('No'),
+//                 ),
+//               ],
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
+// import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:firebase_auth/firebase_auth.dart';
+// import 'package:flutter/material.dart';
+// import 'package:intl/intl.dart';
+// import 'package:rxdart/rxdart.dart';
+// import 'package:shared_preferences/shared_preferences.dart';
+//
+// class ViewsPage extends StatefulWidget {
+//   const ViewsPage({super.key});
+//
+//   @override
+//   State<ViewsPage> createState() => _ViewsPageState();
+// }
+//
+// class _ViewsPageState extends State<ViewsPage> {
+//   late Stream<List<Map<String, dynamic>>> _recordsStream;
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     _recordsStream = _createRecordsStream();
+//   }
+//
+//   Map<String, dynamic> convertStringToTimestamp(Map<String, dynamic> record) {
+//     if (record['timestamp'] is String) {
+//       record['timestamp'] =
+//           Timestamp.fromDate(DateTime.parse(record['timestamp']).toUtc());
+//     }
+//     return record;
+//   }
+//
+//   Map<String, dynamic> convertTimestampToString(Map<String, dynamic> record) {
+//     if (record['timestamp'] is Timestamp) {
+//       record['timestamp'] =
+//           (record['timestamp'] as Timestamp).toDate().toUtc().toIso8601String();
+//     }
+//     return record;
+//   }
+//
+//   Stream<List<Map<String, dynamic>>> _createRecordsStream() async* {
+//     User? user = FirebaseAuth.instance.currentUser;
+//     if (user == null) {
+//       yield [];
+//       return;
+//     }
+//
+//     final email = user.email!;
+//     List<Stream<QuerySnapshot<Map<String, dynamic>>>> streams = [];
+//
+//     DateTime now = DateTime.now();
+//     DateTime startDate = now.subtract(const Duration(days: 7));
+//
+//     for (int i = 0; i <= 7; i++) {
+//       DateTime currentDate = startDate.add(Duration(days: i));
+//       int currentMonth = currentDate.month;
+//       int currentYear = currentDate.year;
+//       String currentDayNumber = DateFormat('d').format(currentDate);
+//
+//       streams.addAll([
+//         FirebaseFirestore.instance
+//             .collection('Records')
+//             .doc('Starting_time')
+//             .collection(
+//             '$currentDayNumber-$currentMonth-$currentYear {yes_Inside}')
+//             .where('userEmail', isEqualTo: email)
+//             .snapshots(),
+//         FirebaseFirestore.instance
+//             .collection('Records')
+//             .doc('Starting_time')
+//             .collection(
+//             '$currentDayNumber-$currentMonth-$currentYear {yes_Outside}')
+//             .where('userEmail', isEqualTo: email)
+//             .snapshots(),
+//         FirebaseFirestore.instance
+//             .collection('Records')
+//             .doc('Starting_time')
+//             .collection('$currentDayNumber-$currentMonth-$currentYear {no}')
+//             .where('userEmail', isEqualTo: email)
+//             .snapshots(),
+//         FirebaseFirestore.instance
+//             .collection('Records')
+//             .doc('Starting_time')
+//             .collection(
+//             '$currentDayNumber-$currentMonth-$currentYear {no_option_selected}')
+//             .where('userEmail', isEqualTo: email)
+//             .snapshots(),
+//       ]);
+//     }
+//
+//     streams.addAll([
+//       FirebaseFirestore.instance
+//           .collection('ClosingRecords')
+//           .doc('Closing_time')
+//           .collection('yes_Closed')
+//           .where('userEmail', isEqualTo: email)
+//           .snapshots(),
+//       FirebaseFirestore.instance
+//           .collection('ClosingRecords')
+//           .doc('Closing_time')
+//           .collection('no_Closed')
+//           .where('userEmail', isEqualTo: email)
+//           .snapshots(),
+//       FirebaseFirestore.instance
+//           .collection('ClosingRecords')
+//           .doc('Closing_time')
+//           .collection('no_option_selected_Closed')
+//           .where('userEmail', isEqualTo: email)
+//           .snapshots(),
+//     ]);
+//
+//     yield* CombineLatestStream.list(streams).map((snapshots) {
+//       List<Map<String, dynamic>> allRecords = [];
+//       for (var snapshot in snapshots) {
+//         allRecords.addAll(snapshot.docs.map((doc) {
+//           final data = doc.data();
+//           Timestamp timestamp = data['timestamp'] as Timestamp;
+//           DateTime dateTime = timestamp.toDate();
+//
+//           data['date'] = DateFormat('dd-MM-yyyy').format(dateTime);
+//           data['time'] = DateFormat('HH:mm').format(dateTime); // Remove seconds
+//           data['dayOfWeek'] = DateFormat('EEEE').format(dateTime);
+//           data.remove('userName'); // Clear userName
+//           data.remove('userEmail'); // Clear userEmail
+//           return data;
+//         }).toList());
+//       }
+//       return allRecords;
+//     });
+//   }
+//
+//   Future<void> _clearRecords() async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     await prefs.remove('userRecords');
+//     setState(() {});
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     User? user = FirebaseAuth.instance.currentUser;
+//     String? email = user?.email;
+//
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: const Text('User Records'),
+//       ),
+//       body: email == null
+//           ? const Center(child: Text('No user signed in'))
+//           : StreamBuilder<List<Map<String, dynamic>>>(
+//         stream: _recordsStream,
+//         builder: (context, snapshot) {
+//           if (snapshot.connectionState == ConnectionState.waiting) {
+//             return const Center(child: CircularProgressIndicator());
+//           } else if (snapshot.hasError) {
+//             return Center(child: Text('Error: ${snapshot.error}'));
+//           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+//             return const Center(child: Text('No records found'));
+//           } else {
+//             List<Map<String, dynamic>> records = snapshot.data!;
+//             Map<String, List<Map<String, dynamic>>> groupedRecords = {};
+//
+//             for (var record in records) {
+//               String dateKey =
+//                   '${record['dayOfWeek']} ${record['date']}';
+//               if (groupedRecords[dateKey] == null) {
+//                 groupedRecords[dateKey] = [];
+//               }
+//               groupedRecords[dateKey]!.add(record);
+//             }
+//
+//             List<String> sortedKeys = groupedRecords.keys.toList();
+//             sortedKeys.sort((a, b) {
+//               DateTime dateA = DateFormat('EEEE dd-MM-yyyy').parse(a);
+//               DateTime dateB = DateFormat('EEEE dd-MM-yyyy').parse(b);
+//               return dateB.compareTo(dateA); // Sort in descending order
+//             });
+//
+//             return ListView.builder(
+//               itemCount: sortedKeys.length,
+//               itemBuilder: (context, index) {
+//                 String dateKey = sortedKeys[index];
+//                 List<Map<String, dynamic>> dateRecords =
+//                 groupedRecords[dateKey]!;
+//
+//                 return Column(
+//                   crossAxisAlignment: CrossAxisAlignment.start,
+//                   children: [
+//                     Padding(
+//                       padding: const EdgeInsets.all(8.0),
+//                       child: Text(
+//                         dateKey,
+//                         style: const TextStyle(
+//                             fontSize: 18, fontWeight: FontWeight.bold),
+//                       ),
+//                     ),
+//                     ...dateRecords.map((record) {
+//                       return ListTile(
+//
+//                         subtitle: Column(
+//                           crossAxisAlignment: CrossAxisAlignment.start,
+//                           children: [
+//                             Text('Status: ${record['action']}'),
+//                             Text('Date: ${record['date']}'),
+//                             Text('Time: ${record['time']}'),
+//                             if (record.containsKey('source'))
+//                               Text('Source: ${record['source']}'),
+//                           ],
+//                         ),
+//                       );
+//                     }).toList(),
+//                   ],
+//                 );
+//               },
+//             );
+//           }
+//         },
+//       ),
+//
+//     );
+//   }
+// }
+//
+// import 'dart:convert';
+// import 'dart:io';
+// import 'package:attendance_mobile_app/Pages/pie_chart_records_page.dart';
+// import 'package:fl_chart/fl_chart.dart';
+// import 'package:flutter/material.dart';
+// import 'package:geocoding/geocoding.dart';
+// import 'package:geolocator/geolocator.dart';
+// import 'package:shared_preferences/shared_preferences.dart';
+//
+// class HomePage extends StatefulWidget {
+//   static final GlobalKey<_HomePageState> homePageKey =
+//       GlobalKey<_HomePageState>();
+//
+//   const HomePage({Key? key}) : super(key: key);
+//
+//   @override
+//   State createState() => _HomePageState();
+// }
+//
+// class _HomePageState extends State {
+//   List<Map<String, dynamic>> records =
+//       []; // Class-level variable to hold records
+//
+//   int yesInsideCount = 0;
+//   int yesOutsideCount = 0;
+//   int noCount = 0;
+//
+//   bool isLoading = true;
+//
+//   int _additionalTextIndex = 0;
+//
+//   Duration _averageTimeWithinRadius = Duration.zero;
+//
+//   Position? _currentPosition;
+//   String? _currentAddress;
+//
+//   String? _imagePath;
+//
+//   List additionalTexts = [
+//     'Customer Sensitivity',
+//     'Leadership',
+//     'Accountability',
+//     'Speed',
+//     'Shared Vision and Mindset',
+//     'Innovation',
+//     'Effectiveness',
+//   ];
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     _loadProfileImage();
+//     _loadAdditionalTextIndex();
+//     _saveUserDetails();
+//     _getCurrentLocation();
+//
+//     _loadRecordsFromSharedPreferences().then((loadedRecords) {
+//       setState(() {
+//         records = loadedRecords; // Store loaded records in the class variable
+//         _updateCounts(records);
+//         _calculateAverageTimeWithinRadius(records);
+//         isLoading = false;
+//       });
+//     });
+//   }
+//
+//   Future<void> _getCurrentLocation() async {
+//     bool serviceEnabled;
+//     LocationPermission permission;
+//
+//     serviceEnabled = await Geolocator.isLocationServiceEnabled();
+//     if (!serviceEnabled) {
+//       return Future.error('Location services are disabled.');
+//     }
+//
+//     permission = await Geolocator.checkPermission();
+//     if (permission == LocationPermission.denied) {
+//       permission = await Geolocator.requestPermission();
+//       if (permission == LocationPermission.denied) {
+//         return Future.error('Location permissions are denied');
+//       }
+//     }
+//
+//     if (permission == LocationPermission.deniedForever) {
+//       return Future.error(
+//           'Location permissions are permanently denied, we cannot request permissions.');
+//     }
+//
+//     Position position = await Geolocator.getCurrentPosition(
+//         desiredAccuracy: LocationAccuracy.high);
+//     setState(() {
+//       _currentPosition = position;
+//     });
+//
+//     List<Placemark> placemarks =
+//         await placemarkFromCoordinates(position.latitude, position.longitude);
+//     Placemark place = placemarks[0];
+//     setState(() {
+//       _currentAddress =
+//           "${place.locality}, ${place.postalCode}, ${place.country}";
+//     });
+//   }
+//
+//   String? _userName;
+//   String? _userEmail;
+//   String? _userPassword;
+//
+//   Future<void> _saveUserDetails() async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     setState(() {
+//       _userName = prefs.getString('userName');
+//       _userEmail = prefs.getString('userEmail');
+//       _userPassword = prefs.getString('userPassword');
+//     });
+//   }
+//
+//   Future<List<Map<String, dynamic>>> _loadRecordsFromSharedPreferences() async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     String? jsonString = prefs.getString('userRecords');
+//     if (jsonString == null) {
+//       return [];
+//     } else {
+//       List jsonList = jsonDecode(jsonString);
+//       return jsonList.map((item) => Map<String, dynamic>.from(item)).toList();
+//     }
+//   }
+//
+//   void _updateCounts(List<Map<String, dynamic>> records) {
+//     int tempYesInsideCount = 0;
+//     int tempYesOutsideCount = 0;
+//     int tempNoCount = 0;
+//
+//     for (var record in records) {
+//       switch (record['action']) {
+//         case 'Yes I am at work':
+//           tempYesInsideCount++;
+//           break;
+//         case 'No I am not at work (Outside)':
+//           tempYesOutsideCount++;
+//           break;
+//         case 'No I am not at work':
+//           tempNoCount++;
+//           break;
+//         default:
+//           break;
+//       }
+//     }
+//
+//     setState(() {
+//       yesInsideCount = tempYesInsideCount;
+//       yesOutsideCount = tempYesOutsideCount;
+//       noCount = tempNoCount;
+//     });
+//   }
+//
+//   Future<void> _calculateAverageTimeWithinRadius(
+//       List<Map<String, dynamic>> records) async {
+//     int totalMinutes = 0;
+//     int count = 0;
+//
+//     for (var record in records) {
+//       if (record['action'] == 'Yes I am at work' && record['time'] != null) {
+//         DateTime recordTime = DateTime.parse(record['time']);
+//         totalMinutes += recordTime.hour * 60 + recordTime.minute;
+//         count++;
+//       }
+//     }
+//
+//     if (count > 0) {
+//       setState(() {
+//         _averageTimeWithinRadius = Duration(minutes: totalMinutes ~/ count);
+//       });
+//     }
+//   }
+//
+//   Widget _buildIcon(String title) {
+//     IconData iconData;
+//     Color color;
+//
+//     switch (title) {
+//       case 'Yes (Inside)':
+//         iconData = Icons.check_circle;
+//         color = Colors.white;
+//         break;
+//       case 'Yes (Outside)':
+//         iconData = Icons.location_off;
+//         color = Colors.white;
+//         break;
+//       case 'No':
+//         iconData = Icons.cancel;
+//         color = Colors.white;
+//         break;
+//       default:
+//         iconData = Icons.help;
+//         color = Colors.grey;
+//     }
+//
+//     return Icon(iconData, color: color, size: 24);
+//   }
+//
+//   Widget _buildLegendItem(Color color, String text) {
+//     return Row(
+//       children: [
+//         Container(
+//           width: 16,
+//           height: 16,
+//           color: color,
+//         ),
+//         const SizedBox(width: 8),
+//         Text(text),
+//       ],
+//     );
+//   }
+//
+//   Future<void> _loadAdditionalTextIndex() async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     setState(() {
+//       _additionalTextIndex = prefs.getInt('additionalTextIndex') ?? 0;
+//     });
+//   }
+//
+//   Future<void> _saveAdditionalTextIndex(int newIndex) async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     await prefs.setInt('additionalTextIndex', newIndex);
+//     setState(() {
+//       _additionalTextIndex = newIndex;
+//     });
+//   }
+//
+//   Future<void> _loadProfileImage() async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     setState(() {
+//       _imagePath = prefs.getString('profile_image');
+//     });
+//   }
+//
+//   void _onSectionTapped(String section) {
+//     // Filter records based on the tapped section
+//     List<Map<String, dynamic>> filteredRecords =
+//         _filterRecordsBySection(records, section);
+//
+//     Navigator.push(
+//       context,
+//       MaterialPageRoute(
+//         builder: (context) => RecordsPage(
+//           section: section,
+//           records: filteredRecords,
+//         ),
+//       ),
+//     );
+//   }
+//
+//   List<Map<String, dynamic>> _filterRecordsBySection(
+//       List<Map<String, dynamic>> records, String section) {
+//     switch (section) {
+//       case 'Yes (Inside)':
+//         return records
+//             .where((record) => record['action'] == 'Yes I am at work')
+//             .toList();
+//       case 'Yes (Outside)':
+//         return records
+//             .where(
+//                 (record) => record['action'] == 'No I am not at work (Outside)')
+//             .toList();
+//       case 'No':
+//         return records
+//             .where((record) => record['action'] == 'No I am not at work')
+//             .toList();
+//       default:
+//         return [];
+//     }
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         automaticallyImplyLeading: false,
+//         actions: [
+//           _imagePath == null
+//               ? IconButton(
+//                   icon: const Icon(Icons.person),
+//                   onPressed: () {
+//                     // Handle icon press if needed
+//                   },
+//                 )
+//               : GestureDetector(
+//                   onTap: () {
+//                     Navigator.push(
+//                       context,
+//                       MaterialPageRoute(
+//                         builder: (context) => ImageScreen(_imagePath!),
+//                       ),
+//                     );
+//                   },
+//                   child: CircleAvatar(
+//                     backgroundImage: FileImage(File(_imagePath!)),
+//                     radius: 20,
+//                   ),
+//                 ),
+//           IconButton(
+//             icon: const Icon(Icons.settings),
+//             onPressed: () {
+//               Navigator.pushNamed(context, '/settings').then((_) {
+//                 _saveAdditionalTextIndex(
+//                     (_additionalTextIndex + 1) % additionalTexts.length);
+//               });
+//             },
+//           ),
+//         ],
+//         title: const Text('Home Page'),
+//       ),
+//       body: isLoading
+//           ? const Center(
+//               child: CircularProgressIndicator(),
+//             )
+//           : SingleChildScrollView(
+//               child: Padding(
+//                 padding: const EdgeInsets.all(16.0),
+//                 child: Column(
+//                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+//                   children: [
+//                     if (_currentPosition != null && _currentAddress != null)
+//                       Column(
+//                         children: [
+//                           Text(
+//                             'Coordinates: ${_currentPosition!.latitude}, ${_currentPosition!.longitude}',
+//                             style: const TextStyle(fontSize: 16),
+//                           ),
+//                           const SizedBox(height: 8),
+//                           Text(
+//                             'Location: $_currentAddress',
+//                             style: const TextStyle(fontSize: 16),
+//                           ),
+//                           const SizedBox(height: 16),
+//                         ],
+//                       ),
+//                     Center(
+//                       child: SizedBox(
+//                         height: 400,
+//                         width: 400,
+//                         child: PieChart(
+//                           PieChartData(
+//                             sections: [
+//                               PieChartSectionData(
+//                                 color: Colors.green,
+//                                 // value: yesInsideCount.toDouble(),
+//                                 badgeWidget: GestureDetector(
+//                                   onTap: () => _onSectionTapped('Yes (Inside)'),
+//                                   child: _buildIcon('Yes (Inside)'),
+//                                 ),
+//                                 badgePositionPercentageOffset: 0.7,
+//                                 radius: 80,
+//                               ),
+//                               PieChartSectionData(
+//                                 color: Colors.orange,
+//                                 // value: yesOutsideCount.toDouble(),
+//                                 badgeWidget: GestureDetector(
+//                                   onTap: () =>
+//                                       _onSectionTapped('Yes (Outside)'),
+//                                   child: _buildIcon('Yes (Outside)'),
+//                                 ),
+//                                 badgePositionPercentageOffset: 0.5,
+//                                 radius: 70,
+//                               ),
+//                               PieChartSectionData(
+//                                 color: Colors.red,
+//                                 // value: noCount.toDouble(),
+//                                 badgeWidget: GestureDetector(
+//                                   onTap: () => _onSectionTapped('No'),
+//                                   child: _buildIcon('No'),
+//                                 ),
+//                                 badgePositionPercentageOffset: 0.5,
+//                                 radius: 70,
+//                               ),
+//                             ],
+//                           ),
+//                         ),
+//                       ),
+//                     ),
+//                     const SizedBox(height: 16),
+//                     Column(
+//                       children: [
+//                         _buildLegendItem(
+//                             Colors.green, 'Checked In (Within geolocator)'),
+//                         _buildLegendItem(
+//                             Colors.orange, 'Checked In (Outside geolocator)'),
+//                         _buildLegendItem(Colors.red, 'Not Checked In'),
+//                       ],
+//                     ),
+//                     const SizedBox(height: 16),
+//                     if (_averageTimeWithinRadius != Duration.zero)
+//                       Text(
+//                         'Average Time Within Radius: '
+//                         '${_averageTimeWithinRadius.inHours}h ${_averageTimeWithinRadius.inMinutes % 60}m',
+//                         style: const TextStyle(fontSize: 16),
+//                       ),
+//                     const SizedBox(height: 16),
+//                     Text(
+//                       additionalTexts[_additionalTextIndex],
+//                       style: const TextStyle(fontSize: 16),
+//                     ),
+//                     const SizedBox(
+//                       height: 20,
+//                     ),
+//                     TextButton(
+//                       onPressed: () {
+//                         Navigator.pushNamed(context, '/atnp');
+//                       },
+//                       child: const Text('Check In',
+//                           style: TextStyle(fontSize: 25)),
+//                     )
+//                   ],
+//                 ),
+//               ),
+//             ),
+//       floatingActionButton: FloatingActionButton(
+//         onPressed: () {
+//           Navigator.pushNamed(context, '/views');
+//         },
+//         child: const Column(
+//           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+//           children: [
+//             Icon(Icons.remove_red_eye_rounded),
+//             Padding(
+//               padding: EdgeInsets.fromLTRB(1, 0, 2, 1),
+//               child: Text('Records'),
+//             ),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }
+//
+// class ThemeProvider with ChangeNotifier {
+//   bool _isDarkTheme = false;
+//
+//   bool get isDarkTheme => _isDarkTheme;
+//
+//   void toggleTheme() {
+//     _isDarkTheme = !_isDarkTheme;
+//     notifyListeners();
+//   }
+// }
+//
+// class ImageScreen extends StatelessWidget {
+//   final String imagePath;
+//
+//   const ImageScreen(this.imagePath, {super.key});
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         automaticallyImplyLeading: false,
+//         leading: IconButton(
+//           onPressed: () {
+//             Navigator.pop(context);
+//           },
+//           icon: const Icon(Icons.arrow_back_ios),
+//         ),
+//       ),
+//       body: Center(
+//         child: Image.file(File(imagePath)),
+//       ),
+//     );
+//   }
+// }
+
