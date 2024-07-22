@@ -31,17 +31,14 @@ Future<void> main() async {
 
 void initServices() async {
   await NotificationService.init();
-
   SharedPreferences prefs = await SharedPreferences.getInstance();
   bool notificationsScheduled =
       prefs.getBool('notificationsScheduled') ?? false;
-
   if (!notificationsScheduled) {
     await NotificationService.showNotification(
         "Attendance Notice!", "Are you at work?");
     await NotificationService.showNotificationAt5(
         "Attendance Notice!", "Have you closed?");
-
     await prefs.setBool('notificationsScheduled', true);
     print("Notifications scheduled.");
   } else {
@@ -79,7 +76,10 @@ class _MyAppState extends State<MyApp> {
             '/splash': (_) => const Splashscreen(),
             '/password': (_) => const PasswordPage(),
             '/atnp': (_) => const AttendanceNoticePage(),
-            '/piechartrecords': (_) =>  RecordsPage(section: '', records: const [],),
+            '/piechartrecords': (_) => RecordsPage(
+                  section: '',
+                  records: const [],
+                ),
           },
           onGenerateRoute: (settings) {
             if (settings.name == '/settings') {

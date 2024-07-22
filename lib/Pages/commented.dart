@@ -7089,3 +7089,18 @@
 //   }
 // }
 
+// @pragma("vm:entry-point")
+// void callbackDispatcher() {
+//   Workmanager().executeTask((task, inputData) async {
+//     switch (task) {
+//       case "work_hourly":
+//         await Firebase.initializeApp();
+//         NotificationService.showNotification(
+//             "Attendance Notice!", "Are you at work?");
+//         NotificationService.showNotificationAt5(
+//             "Attendance Notice!", "Have you closed?");
+//         break;
+//     }
+//     return Future.value(true);
+//   });
+// }

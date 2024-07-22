@@ -322,7 +322,7 @@ class NotificationService {
     tz.TZDateTime _notificationAt5PM() {
       final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
       tz.TZDateTime scheduledDate =
-          tz.TZDateTime(tz.local, now.year, now.month, now.day, 16, 34);
+          tz.TZDateTime(tz.local, now.year, now.month, now.day, 17);
       if (scheduledDate.isBefore(now)) {
         scheduledDate = scheduledDate.add(const Duration(days: 1));
       }
@@ -360,21 +360,7 @@ class NotificationService {
   }
 }
 
-// @pragma("vm:entry-point")
-// void callbackDispatcher() {
-//   Workmanager().executeTask((task, inputData) async {
-//     switch (task) {
-//       case "work_hourly":
-//         await Firebase.initializeApp();
-//         NotificationService.showNotification(
-//             "Attendance Notice!", "Are you at work?");
-//         NotificationService.showNotificationAt5(
-//             "Attendance Notice!", "Have you closed?");
-//         break;
-//     }
-//     return Future.value(true);
-//   });
-// }
+
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
