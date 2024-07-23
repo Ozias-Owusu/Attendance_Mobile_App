@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,7 +15,7 @@ class _SplashscreenState extends State<Splashscreen>
   @override
   void initState() {
     super.initState();
-    _checkLoginStatus();
+    _checkUserStatus();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
     Future.delayed(const Duration(seconds: 6), () {
       if (mounted) {
@@ -23,17 +24,29 @@ class _SplashscreenState extends State<Splashscreen>
     });
   }
 
-  Future<void> _checkLoginStatus() async {
+  Future<void> _checkUserStatus() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? userName = prefs.getString('UserName');
-    String? userPassword = prefs.getString('userPassword');
     String? userEmail = prefs.getString('userEmail');
+    String? userPassword = prefs.getString('userPassword');
 
-    if (userName != null && userPassword != null && userEmail != null) {
-      // If user details are saved, navigate to the home page
-      Navigator.pushReplacementNamed(context, '/home');
+    if (userEmail != null && userPassword != null) {
+      try {
+        UserCredential userCredential = await FirebaseAuth.instance
+            .signInWithEmailAndPassword(
+                email: userEmail, password: userPassword);
+
+        User? user = userCredential.user;
+
+        if (user != null) {
+          Navigator.pushReplacementNamed(context, '/home');
+        } else {
+          Navigator.pushReplacementNamed(context, '/');
+        }
+      } catch (e) {
+        print('Error: $e');
+        Navigator.pushReplacementNamed(context, '/');
+      }
     } else {
-      // If no user details, navigate to the authentication page
       Navigator.pushReplacementNamed(context, '/');
     }
   }

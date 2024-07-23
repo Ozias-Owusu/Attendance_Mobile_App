@@ -1,3 +1,109 @@
+// import 'package:flutter/material.dart';
+// import 'package:shared_preferences/shared_preferences.dart';
+// import 'dart:convert';
+// import 'package:intl/intl.dart';
+//
+// class RecordsPage extends StatefulWidget {
+//   final String section;
+//
+//   RecordsPage({super.key, required this.section, required List records});
+//
+//   @override
+//   _RecordsPageState createState() => _RecordsPageState();
+// }
+//
+// class _RecordsPageState extends State<RecordsPage> {
+//   List<Map<String, dynamic>> records = [];
+//   bool isLoading = true;
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     _loadRecordsFromSharedPreferences().then((loadedRecords) {
+//       print('Loaded Records: $loadedRecords'); // Debug print
+//       setState(() {
+//         records = _filterRecordsBySection(loadedRecords, widget.section);
+//         print('Filtered Records: $records'); // Debug print
+//         isLoading = false;
+//       });
+//     }).catchError((error) {
+//       print('Error loading records: $error');
+//       setState(() {
+//         isLoading = false; // Stop loading indicator even if there's an error
+//       });
+//     });
+//   }
+//
+//   Future<List<Map<String, dynamic>>> _loadRecordsFromSharedPreferences() async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     String? jsonString = prefs.getString('userRecords');
+//     print('Stored Records JSON: $jsonString'); // Debug print
+//     if (jsonString == null) {
+//       return []; // No records found
+//     } else {
+//       List<dynamic> jsonList = jsonDecode(jsonString);
+//       return jsonList.map((item) => Map<String, dynamic>.from(item)).toList();
+//     }
+//   }
+//
+//   List<Map<String, dynamic>> _filterRecordsBySection(
+//       List<Map<String, dynamic>> records, String section) {
+//     switch (section) {
+//       case 'Yes (Inside)':
+//         return records
+//             .where((record) => record['action'] == 'Yes I am at work')
+//             .toList();
+//       case 'Yes (Outside)':
+//         return records
+//             .where((record) => record['action'] == 'No I am not at work (Outside)')
+//             .toList();
+//       case 'No':
+//         return records
+//             .where((record) => record['action'] == 'No I am not at work')
+//             .toList();
+//       default:
+//         print('Unknown section: $section'); // Debug print
+//         return [];
+//     }
+//   }
+//
+//   String _getDayOfWeek(String? dateString) {
+//     if (dateString == null) return 'No Date';
+//     DateTime date = DateFormat('yyyy-MM-dd').parse(dateString);
+//     return DateFormat('EEEE').format(date); // EEEE gives the full day name
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: Text('Records for ${widget.section}'),
+//       ),
+//       body: isLoading
+//           ? const Center(child: CircularProgressIndicator())
+//           : records.isEmpty
+//           ? Center(child: Text('No records found for ${widget.section}.'))
+//           : ListView.builder(
+//         itemCount: records.length,
+//         itemBuilder: (context, index) {
+//           var record = records[index];
+//           String? date = record['date'];
+//           String dayOfWeek = _getDayOfWeek(date);
+//           return ListTile(
+//             title: Text('Record ${index + 1}'),
+//             subtitle: Column(
+//               crossAxisAlignment: CrossAxisAlignment.start,
+//               children: [
+//                 if (date != null) Text(dayOfWeek),
+//               ],
+//             ),
+//             trailing: Text(date ?? 'No Date'),
+//           );
+//         },
+//       ),
+//     );
+//   }
+// }
 // // import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 // import 'package:firebase_core/firebase_core.dart';
 // import 'package:firebase_messaging/firebase_messaging.dart';
@@ -79,7 +185,50 @@
 //     );
 //   }
 // }
+
+// void _signIn() async {
+//   if (_formKey.currentState?.validate() ?? false) {
+//     setState(() {
+//       isLoading = true; // Set loading state to true
+//     });
+//     try {
+//       // String userName = _userName.text;
+//       String userEmail = _userEmail.text;
+//       String userPassword = _userPassword.text;
 //
+//       User? user =
+//           await _auth.signInWithEmailAndPassword(userEmail, userPassword);
+//
+//       if (user != null) {
+//         print('User is successfully Signed In ');
+//
+//         Navigator.pushNamed(context, '/home');
+//
+//         SharedPreferences prefs = await SharedPreferences.getInstance();
+//         // prefs.setString('UserName', userName);
+//         prefs.setString('userPassword', userPassword);
+//         prefs.setString('userEmail', userEmail);
+//       } else {
+//         print('ERROR');
+//
+//         ScaffoldMessenger.of(context).showSnackBar(
+//           const SnackBar(
+//             content: Text('Sign In  Failed. Try Again!! '),
+//             backgroundColor: Colors.red, // Optionally set a background color
+//             duration: Duration(seconds: 3), // Duration to show the SnackBar
+//           ),
+//         );
+//       }
+//     } catch (e, s) {
+//       print('Error');
+//       print(s);
+//     } finally {
+//       setState(() {
+//         isLoading = false; // Set loading state to true
+//       });
+//     }
+//   }
+// }
 // import 'package:cloud_firestore/cloud_firestore.dart';
 // import 'package:firebase_auth/firebase_auth.dart';
 // import 'package:firebase_messaging/firebase_messaging.dart';
@@ -4124,7 +4273,6 @@
 //   }
 // }
 
-
 //
 // import 'dart:convert';
 // import 'dart:io';
@@ -7103,4 +7251,36 @@
 //     }
 //     return Future.value(true);
 //   });
+// }
+// import 'package:flutter/material.dart';
+//
+// class ProfilePage extends StatelessWidget {
+//   const ProfilePage({super.key});
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(title: const Text('Profile')),
+//
+//       body:const Center(
+//         child: Column(
+//           mainAxisAlignment: MainAxisAlignment.start,
+//           children: [
+//             CircleAvatar(
+//               radius: 65,
+//             ),
+//             SizedBox(height: 30),
+//             Column(
+//               mainAxisAlignment: MainAxisAlignment.end,
+//               children: [
+//                 Text('Name: '),
+//                 SizedBox(height: 20),
+//                 Text('Email: '),
+//               ],
+//             )
+//           ],
+//         ),
+//       ),
+//     );
+//   }
 // }

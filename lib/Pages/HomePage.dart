@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -9,6 +10,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'noifications_service_new.dart';
 
 class HomePage extends StatefulWidget {
   static final GlobalKey<_HomePageState> homePageKey =
@@ -21,7 +24,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-
   int yesInsideCount = 0;
   int yesOutsideCount = 0;
   int noCount = 0;
@@ -48,6 +50,7 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _loadProfileImage();
     _loadAdditionalTextIndex();
+    NotificationService.showNotification('title', ' Trying test');
     _saveUserDetails();
     _getCurrentLocation();
     _loadRecordsFromSharedPreferences().then((records) {
@@ -127,13 +130,13 @@ class _HomePageState extends State<HomePage> {
 
     for (var record in records) {
       switch (record['action']) {
-        case 'Yes I am at work':
+        case 'Checked In':
           tempYesInsideCount++;
           break;
-        case 'No I am not at work (Outside)':
+        case 'Not Checked In(Outside)':
           tempYesOutsideCount++;
           break;
-        case 'No I am not at work':
+        case 'Not Checked In':
           tempNoCount++;
           break;
         default:
@@ -154,7 +157,7 @@ class _HomePageState extends State<HomePage> {
     int count = 0;
 
     for (var record in records) {
-      if (record['action'] == 'Yes I am at work' && record['time'] != null) {
+      if (record['action'] == 'Checked In' && record['time'] != null) {
         DateTime recordTime = DateTime.parse(record['time']);
         totalMinutes += recordTime.hour * 60 + recordTime.minute;
         count++;
@@ -173,15 +176,15 @@ class _HomePageState extends State<HomePage> {
     Color color;
 
     switch (title) {
-      case 'Yes (Inside)':
+      case 'Checked In':
         iconData = Icons.check_circle;
         color = Colors.white;
         break;
-      case 'Yes (Outside)':
+      case 'Not Checked In(Outside)':
         iconData = Icons.location_off;
         color = Colors.white;
         break;
-      case 'No':
+      case 'Not Checked In':
         iconData = Icons.cancel;
         color = Colors.white;
         break;
@@ -262,14 +265,17 @@ class _HomePageState extends State<HomePage> {
 
         String collectionPath;
         switch (section) {
-          case 'Yes (Inside)':
-            collectionPath = '$currentDayNumber-$currentMonth-$currentYear {yes_Inside}';
+          case 'Checked In':
+            collectionPath =
+                '$currentDayNumber-$currentMonth-$currentYear {yes_Inside}';
             break;
-          case 'Yes (Outside)':
-            collectionPath = '$currentDayNumber-$currentMonth-$currentYear {yes_Outside}';
+          case 'Not Checked In(Outside)':
+            collectionPath =
+                '$currentDayNumber-$currentMonth-$currentYear {yes_Outside}';
             break;
-          case 'No':
-            collectionPath = '$currentDayNumber-$currentMonth-$currentYear {no}';
+          case 'Not Checked In':
+            collectionPath =
+                '$currentDayNumber-$currentMonth-$currentYear {no}';
             break;
           default:
             collectionPath = '';
@@ -292,30 +298,33 @@ class _HomePageState extends State<HomePage> {
         FirebaseFirestore.instance
             .collection('ClosingRecords')
             .doc('Closing_time')
-            .collection(section == 'Yes (Inside)' ? 'yes_Closed' : section == 'Yes (Outside)' ? 'no_Closed' : 'no_option_selected_Closed')
+            .collection(section == 'Checked In'
+                ? 'yes_Closed'
+                : section == 'Not Checked In(Outside)'
+                    ? 'no_Closed'
+                    : 'no_option_selected_Closed')
             .where('userEmail', isEqualTo: email)
             .snapshots(),
       ]);
 
       return (await CombineLatestStream.list(streams).first)
           .expand((snapshot) => snapshot.docs.map((doc) {
-        final data = doc.data();
-        Timestamp timestamp = data['timestamp'] as Timestamp;
-        DateTime dateTime = timestamp.toDate();
-        data['date'] = DateFormat('dd-MM-yyyy').format(dateTime);
-        data['time'] = DateFormat('HH:mm').format(dateTime);
-        data['dayOfWeek'] = DateFormat('EEEE').format(dateTime);
-        data.remove('userName');
-        data.remove('userEmail');
-        return data;
-      }).toList())
+                final data = doc.data();
+                Timestamp timestamp = data['timestamp'] as Timestamp;
+                DateTime dateTime = timestamp.toDate();
+                data['date'] = DateFormat('dd-MM-yyyy').format(dateTime);
+                data['time'] = DateFormat('HH:mm').format(dateTime);
+                data['dayOfWeek'] = DateFormat('EEEE').format(dateTime);
+                data.remove('userName');
+                data.remove('userEmail');
+                return data;
+              }).toList())
           .toList();
     } catch (e) {
       print('Error fetching records: $e');
       return [];
     }
   }
-
 
   void _onSectionTapped(String section) async {
     List<Map<String, dynamic>> records = await _fetchRecords(section);
@@ -354,8 +363,6 @@ class _HomePageState extends State<HomePage> {
       },
     );
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -432,8 +439,8 @@ class _HomePageState extends State<HomePage> {
                                 color: Colors.green,
                                 // value: yesInsideCount.toDouble(),
                                 badgeWidget: GestureDetector(
-                                  onTap: () => _onSectionTapped('Yes (Inside)'),
-                                  child: _buildIcon('Yes (Inside)'),
+                                  onTap: () => _onSectionTapped('Checked In'),
+                                  child: _buildIcon('Checked In'),
                                 ),
                                 badgePositionPercentageOffset: 0.7,
                                 radius: 80,
@@ -442,9 +449,9 @@ class _HomePageState extends State<HomePage> {
                                 color: Colors.orange,
                                 // value: yesOutsideCount.toDouble(),
                                 badgeWidget: GestureDetector(
-                                  onTap: () =>
-                                      _onSectionTapped('Yes (Outside)'),
-                                  child: _buildIcon('Yes (Outside)'),
+                                  onTap: () => _onSectionTapped(
+                                      'Not Checked In(Outside)'),
+                                  child: _buildIcon('Not Checked In(Outside)'),
                                 ),
                                 badgePositionPercentageOffset: 0.5,
                                 radius: 70,
@@ -453,8 +460,9 @@ class _HomePageState extends State<HomePage> {
                                 color: Colors.red,
                                 // value: noCount.toDouble(),
                                 badgeWidget: GestureDetector(
-                                  onTap: () => _onSectionTapped('No'),
-                                  child: _buildIcon('No'),
+                                  onTap: () =>
+                                      _onSectionTapped('Not Checked In'),
+                                  child: _buildIcon('Not Checked In'),
                                 ),
                                 badgePositionPercentageOffset: 0.5,
                                 radius: 70,
@@ -493,7 +501,10 @@ class _HomePageState extends State<HomePage> {
                         onPressed: () {
                           Navigator.pushNamed(context, '/atnp');
                         },
-                        child: const Text('Check In', style: TextStyle(fontSize: 25),))
+                        child: const Text(
+                          'Check In',
+                          style: TextStyle(fontSize: 25),
+                        ))
                   ],
                 ),
               ),

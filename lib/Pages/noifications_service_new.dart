@@ -124,7 +124,7 @@ class NotificationService {
               '$currentDayNumber-$currentMonth-$currentYear {yes_Inside}')
           .add({
         'timestamp': Timestamp.fromDate(DateTime.now().toUtc()),
-        'action': 'Yes I am at work',
+        'action': 'Checked In',
         'dayOfWeek': currentDay,
         'userEmail': userEmail ?? 'Unknown',
         'userName': userName ?? 'Unknown',
@@ -139,7 +139,7 @@ class NotificationService {
               '$currentDayNumber-$currentMonth-$currentYear {yes_Outside}')
           .add({
         'timestamp': Timestamp.fromDate(DateTime.now().toUtc()),
-        'action': 'No I am not at work(Outside)',
+        'action': 'Not Checked In(Outside)',
         'dayOfWeek': currentDay,
         'userEmail': userEmail ?? 'Unknown',
         'userName': userName ?? 'Unknown',
@@ -162,7 +162,7 @@ class NotificationService {
         .collection('$currentDayNumber-$currentMonth-$currentYear {no}')
         .add({
       'timestamp': Timestamp.fromDate(DateTime.now().toUtc()),
-      'action': 'No I am not at work',
+      'action': 'Not Checked In',
       'dayOfWeek': currentDay,
       'userEmail': userEmail ?? 'Unknown',
       'userName': userName ?? 'Unknown',
@@ -184,7 +184,7 @@ class NotificationService {
         .collection('$currentDayNumber-$currentMonth-$currentYear {yes_Closed}')
         .add({
       'timestamp': Timestamp.fromDate(DateTime.now().toUtc()),
-      'action': 'Yes I have closed',
+      'action': 'Checked Out',
       'dayOfWeek': currentDay,
       'userEmail': userEmail ?? 'Unknown',
       'userName': userName ?? 'Unknown',
@@ -206,7 +206,7 @@ class NotificationService {
         .collection('$currentDayNumber-$currentMonth-$currentYear {no_Closed}')
         .add({
       'timestamp': Timestamp.fromDate(DateTime.now().toUtc()),
-      'action': 'No I have not closed',
+      'action': 'Not Checked Out',
       'dayOfWeek': currentDay,
       'userEmail': userEmail ?? 'Unknown',
       'userName': userName ?? 'Unknown',
@@ -359,8 +359,6 @@ class NotificationService {
     );
   }
 }
-
-
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
