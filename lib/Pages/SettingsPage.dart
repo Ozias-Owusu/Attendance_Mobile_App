@@ -1,4 +1,3 @@
-import 'package:attendance_mobile_app/Pages/ProfilePage.dart';
 import 'package:attendance_mobile_app/provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -94,22 +93,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   title: const Text('Profile', style: TextStyle(fontSize: 20)),
                   trailing: const Icon(Icons.arrow_forward_ios),
                   onTap: () {
-                    showDialog(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return AlertDialog(
-                          content: const ProfilePage(),
-                          actions: [
-                            TextButton(
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                              },
-                              child: const Text('Close'),
-                            ),
-                          ],
-                        );
-                      },
-                    );
+                    Navigator.pushReplacementNamed(context, '/profile');
                   },
                 ),
                 ListTile(
@@ -162,4 +146,3 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 }
-

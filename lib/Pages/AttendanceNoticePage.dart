@@ -421,8 +421,7 @@ class _AttendanceNoticePageState extends State<AttendanceNoticePage> {
   Future<void> _handleYesLeaveButtonAction(String currentDay,
       String currentDayNumber, int currentMonth, int currentYear) async {
     await FirebaseFirestore.instance
-        .collection(
-            '$currentDayNumber-$currentMonth-$currentYear{ClosingRecords}')
+        .collection('ClosingRecords')
         .doc('Closing_time')
         .collection('$currentDayNumber-$currentMonth-$currentYear{yes_Closed}')
         .add({

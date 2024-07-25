@@ -76,7 +76,7 @@ class _MyAppState extends State<MyApp> {
             '/splash': (_) => const Splashscreen(),
             '/password': (_) => const PasswordPage(),
             '/atnp': (_) => const AttendanceNoticePage(),
-            '/piechartrecords': (_) => RecordsPage(
+            '/piechartrecords': (_) => const RecordsPage(
                   section: '',
                   records: const [],
                 ),

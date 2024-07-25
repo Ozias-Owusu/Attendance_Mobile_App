@@ -1,6 +1,7 @@
 import 'dart:convert';
-import 'dart:io';
 
+import 'package:attendance_mobile_app/Pages/noifications_service_new.dart';
+import 'package:attendance_mobile_app/Pages/pie_chart_records_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -10,8 +11,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import 'noifications_service_new.dart';
 
 class HomePage extends StatefulWidget {
   static final GlobalKey<_HomePageState> homePageKey =
@@ -33,7 +32,6 @@ class _HomePageState extends State<HomePage> {
 
   Position? _currentPosition;
   String? _currentAddress;
-  String? _imagePath;
 
   List<String> additionalTexts = [
     'Customer Sensitivity',
@@ -48,9 +46,8 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _loadProfileImage();
     _loadAdditionalTextIndex();
-    NotificationService.showNotification('title', ' Trying test');
+    NotificationService.showNotificationAt5('title', '');
     _saveUserDetails();
     _getCurrentLocation();
     _loadRecordsFromSharedPreferences().then((records) {
@@ -156,11 +153,18 @@ class _HomePageState extends State<HomePage> {
     int totalMinutes = 0;
     int count = 0;
 
+    DateFormat dateFormat =
+        DateFormat('dd-MM-yyyy HH:mm'); // Adjust to your format
+
     for (var record in records) {
       if (record['action'] == 'Checked In' && record['time'] != null) {
-        DateTime recordTime = DateTime.parse(record['time']);
-        totalMinutes += recordTime.hour * 60 + recordTime.minute;
-        count++;
+        try {
+          DateTime recordTime = dateFormat.parse(record['time']);
+          totalMinutes += recordTime.hour * 60 + recordTime.minute;
+          count++;
+        } catch (e) {
+          print('Error parsing date: $e');
+        }
       }
     }
 
@@ -225,26 +229,6 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  Future<void> _loadProfileImage() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _imagePath = prefs.getString('profile_image');
-    });
-  }
-
-  // void _onSectionTapped(String section) {
-  //
-  //   Navigator.push(
-  //     context,
-  //     MaterialPageRoute(
-  //       builder: (context) => RecordsPage(
-  //         section: section,
-  //         records: const [],
-  //       ),
-  //     ),
-  //   );
-  // }
-
   Future<List<Map<String, dynamic>>> _fetchRecords(String section) async {
     try {
       User? user = FirebaseAuth.instance.currentUser;
@@ -265,15 +249,15 @@ class _HomePageState extends State<HomePage> {
 
         String collectionPath;
         switch (section) {
-          case 'Checked In':
+          case 'Yes (Inside)':
             collectionPath =
                 '$currentDayNumber-$currentMonth-$currentYear {yes_Inside}';
             break;
-          case 'Not Checked In(Outside)':
+          case 'Yes (Outside)':
             collectionPath =
                 '$currentDayNumber-$currentMonth-$currentYear {yes_Outside}';
             break;
-          case 'Not Checked In':
+          case 'No':
             collectionPath =
                 '$currentDayNumber-$currentMonth-$currentYear {no}';
             break;
@@ -294,32 +278,36 @@ class _HomePageState extends State<HomePage> {
       }
 
       // Add ClosingRecords
-      streams.addAll([
+      streams.add(
         FirebaseFirestore.instance
             .collection('ClosingRecords')
             .doc('Closing_time')
-            .collection(section == 'Checked In'
+            .collection(section == 'Yes (Inside)'
                 ? 'yes_Closed'
-                : section == 'Not Checked In(Outside)'
+                : section == 'Yes (Outside)'
                     ? 'no_Closed'
                     : 'no_option_selected_Closed')
             .where('userEmail', isEqualTo: email)
             .snapshots(),
-      ]);
+      );
 
-      return (await CombineLatestStream.list(streams).first)
-          .expand((snapshot) => snapshot.docs.map((doc) {
-                final data = doc.data();
-                Timestamp timestamp = data['timestamp'] as Timestamp;
-                DateTime dateTime = timestamp.toDate();
-                data['date'] = DateFormat('dd-MM-yyyy').format(dateTime);
-                data['time'] = DateFormat('HH:mm').format(dateTime);
-                data['dayOfWeek'] = DateFormat('EEEE').format(dateTime);
-                data.remove('userName');
-                data.remove('userEmail');
-                return data;
-              }).toList())
-          .toList();
+      // Fetch and process records
+      List<Map<String, dynamic>> records =
+          (await CombineLatestStream.list(streams).first)
+              .expand((snapshot) => snapshot.docs.map((doc) {
+                    final data = doc.data();
+                    Timestamp timestamp = data['timestamp'] as Timestamp;
+                    DateTime dateTime = timestamp.toDate();
+                    data['date'] = DateFormat('dd-MM-yyyy').format(dateTime);
+                    data['time'] = DateFormat('HH:mm').format(dateTime);
+                    data['dayOfWeek'] = DateFormat('EEEE').format(dateTime);
+                    data.remove('userName');
+                    data.remove('userEmail');
+                    return data;
+                  }).toList())
+              .toList();
+
+      return records;
     } catch (e) {
       print('Error fetching records: $e');
       return [];
@@ -328,39 +316,11 @@ class _HomePageState extends State<HomePage> {
 
   void _onSectionTapped(String section) async {
     List<Map<String, dynamic>> records = await _fetchRecords(section);
-    _showRecordsDialog(section, records);
-  }
-
-  void _showRecordsDialog(String section, List<Map<String, dynamic>> records) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Records for $section'),
-          content: Container(
-            width: double.maxFinite,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: records.length,
-              itemBuilder: (context, index) {
-                Map<String, dynamic> record = records[index];
-                return ListTile(
-                  title: Text(record['date'] ?? 'No Date'),
-                  trailing: Text(record['action'] ?? 'No Action'),
-                );
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Close'),
-            ),
-          ],
-        );
-      },
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RecordsPage(section: section, records: records),
+      ),
     );
   }
 
@@ -370,27 +330,6 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         actions: [
-          _imagePath == null
-              ? IconButton(
-                  icon: const Icon(Icons.person),
-                  onPressed: () {
-                    // Handle icon press if needed
-                  },
-                )
-              : GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ImageScreen(_imagePath!),
-                      ),
-                    );
-                  },
-                  child: CircleAvatar(
-                    backgroundImage: FileImage(File(_imagePath!)),
-                    radius: 20,
-                  ),
-                ),
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
@@ -536,28 +475,5 @@ class ThemeProvider with ChangeNotifier {
   void toggleTheme() {
     _isDarkTheme = !_isDarkTheme;
     notifyListeners();
-  }
-}
-
-class ImageScreen extends StatelessWidget {
-  final String imagePath;
-
-  const ImageScreen(this.imagePath, {super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        leading: IconButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            icon: const Icon(Icons.arrow_back_ios)),
-      ),
-      body: Center(
-        child: Image.file(File(imagePath)),
-      ),
-    );
   }
 }

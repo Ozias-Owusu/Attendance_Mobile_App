@@ -841,7 +841,828 @@
 //  No action
 // Workmanager().cancelByTag("Scheduled Task");
 // }
+// import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:firebase_auth/firebase_auth.dart';
+// import 'package:flutter/material.dart';
+// import 'package:intl/intl.dart';
+// import 'package:month_picker_dialog/month_picker_dialog.dart';
+// import 'package:rxdart/rxdart.dart';
+// import 'package:shared_preferences/shared_preferences.dart';
+//
+// class ViewsPage extends StatefulWidget {
+//   const ViewsPage({super.key});
+//
+//   @override
+//   State<ViewsPage> createState() => _ViewsPageState();
+// }
+//
+// class _ViewsPageState extends State<ViewsPage> {
+//   late Stream<List<Map<String, dynamic>>> _recordsStream;
+//   DateTime _selectedDate = DateTime.now();
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     _recordsStream = _createRecordsStream();
+//   }
+//
+//   Map<String, dynamic> convertStringToTimestamp(Map<String, dynamic> record) {
+//     if (record['timestamp'] is String) {
+//       record['timestamp'] =
+//           Timestamp.fromDate(DateTime.parse(record['timestamp']).toUtc());
+//     }
+//     return record;
+//   }
+//
+//   Map<String, dynamic> convertTimestampToString(Map<String, dynamic> record) {
+//     if (record['timestamp'] is Timestamp) {
+//       record['timestamp'] =
+//           (record['timestamp'] as Timestamp).toDate().toUtc().toIso8601String();
+//     }
+//     return record;
+//   }
+//
+//   Stream<List<Map<String, dynamic>>> _createRecordsStream() async* {
+//     User? user = FirebaseAuth.instance.currentUser;
+//     if (user == null) {
+//       yield [];
+//       return;
+//     }
+//
+//     final email = user.email!;
+//     List<Stream<QuerySnapshot<Map<String, dynamic>>>> streams = [];
+//
+//     DateTime now = _selectedDate;
+//     DateTime startDate = DateTime(now.year, now.month, 1);
+//     DateTime endDate =
+//         DateTime(now.year, now.month + 1, 1).subtract(Duration(days: 1));
+//
+//     for (int i = 0; i <= endDate.day; i++) {
+//       DateTime currentDate = startDate.add(Duration(days: i));
+//       int currentMonth = currentDate.month;
+//       int currentYear = currentDate.year;
+//       String currentDayNumber = DateFormat('d').format(currentDate);
+//
+//       streams.addAll([
+//         FirebaseFirestore.instance
+//             .collection('Records')
+//             .doc('Starting_time')
+//             .collection(
+//                 '$currentDayNumber-$currentMonth-$currentYear {yes_Inside}')
+//             .where('userEmail', isEqualTo: email)
+//             .snapshots(),
+//         FirebaseFirestore.instance
+//             .collection('Records')
+//             .doc('Starting_time')
+//             .collection(
+//                 '$currentDayNumber-$currentMonth-$currentYear {yes_Outside}')
+//             .where('userEmail', isEqualTo: email)
+//             .snapshots(),
+//         FirebaseFirestore.instance
+//             .collection('Records')
+//             .doc('Starting_time')
+//             .collection('$currentDayNumber-$currentMonth-$currentYear {no}')
+//             .where('userEmail', isEqualTo: email)
+//             .snapshots(),
+//         FirebaseFirestore.instance
+//             .collection('Records')
+//             .doc('Starting_time')
+//             .collection(
+//                 '$currentDayNumber-$currentMonth-$currentYear {Checked In}')
+//             .where('userEmail', isEqualTo: email)
+//             .snapshots(),
+//         FirebaseFirestore.instance
+//             .collection('Records')
+//             .doc('Starting_time')
+//             .collection(
+//                 '$currentDayNumber-$currentMonth-$currentYear {no_option_selected}')
+//             .where('userEmail', isEqualTo: email)
+//             .snapshots(),
+//       ]);
+//     }
+//
+//     streams.addAll([
+//       FirebaseFirestore.instance
+//           .collection('ClosingRecords')
+//           .doc('Closing_time')
+//           .collection('yes_Closed')
+//           .where('userEmail', isEqualTo: email)
+//           .snapshots(),
+//       FirebaseFirestore.instance
+//           .collection('ClosingRecords')
+//           .doc('Closing_time')
+//           .collection('no_Closed')
+//           .where('userEmail', isEqualTo: email)
+//           .snapshots(),
+//       FirebaseFirestore.instance
+//           .collection('ClosingRecords')
+//           .doc('Closing_time')
+//           .collection('no_option_selected_Closed')
+//           .where('userEmail', isEqualTo: email)
+//           .snapshots(),
+//     ]);
+//
+//     yield* CombineLatestStream.list(streams).map((snapshots) {
+//       List<Map<String, dynamic>> allRecords = [];
+//       for (var snapshot in snapshots) {
+//         allRecords.addAll(snapshot.docs.map((doc) {
+//           final data = doc.data();
+//           Timestamp timestamp = data['timestamp'] as Timestamp;
+//           DateTime dateTime = timestamp.toDate();
+//
+//           data['date'] = DateFormat('dd-MM-yyyy').format(dateTime);
+//           data['time'] = DateFormat('HH:mm').format(dateTime); // Remove seconds
+//           data['dayOfWeek'] = DateFormat('EEEE').format(dateTime);
+//           data.remove('userName'); // Clear userName
+//           data.remove('userEmail'); // Clear userEmail
+//           return data;
+//         }).toList());
+//       }
+//       return allRecords;
+//     });
+//   }
+//   // Stream<List<Map<String, dynamic>>> _createRecordsStream() async* {
+//   //   User? user = FirebaseAuth.instance.currentUser;
+//   //   if (user == null) {
+//   //     yield [];
+//   //     return;
+//   //   }
+//   //
+//   //   final email = user.email!;
+//   //   List<Stream<QuerySnapshot<Map<String, dynamic>>>> streams = [];
+//   //
+//   //   // Adjust the date range for past records
+//   //   DateTime now = DateTime.now();
+//   //   DateTime startDate = DateTime(now.year - 1, 1, 1); // Start from 1 year ago
+//   //   DateTime endDate = now;
+//   //
+//   //   // Generate date range for past records
+//   //   for (DateTime currentDate = startDate;
+//   //       currentDate.isBefore(endDate);
+//   //       currentDate = currentDate.add(Duration(days: 1))) {
+//   //     int currentMonth = currentDate.month;
+//   //     int currentYear = currentDate.year;
+//   //     String currentDayNumber = DateFormat('d').format(currentDate);
+//   //
+//   //     streams.addAll([
+//   //       FirebaseFirestore.instance
+//   //           .collection('Records')
+//   //           .doc('Starting_time')
+//   //           .collection(
+//   //               '$currentDayNumber-$currentMonth-$currentYear {yes_Inside}')
+//   //           .where('Email', isEqualTo: email)
+//   //           .snapshots(),
+//   //       FirebaseFirestore.instance
+//   //           .collection('Records')
+//   //           .doc('Starting_time')
+//   //           .collection(
+//   //               '$currentDayNumber-$currentMonth-$currentYear {yes_Outside}')
+//   //           .where('Email', isEqualTo: email)
+//   //           .snapshots(),
+//   //       FirebaseFirestore.instance
+//   //           .collection('Records')
+//   //           .doc('Starting_time')
+//   //           .collection('$currentDayNumber-$currentMonth-$currentYear {no}')
+//   //           .where('userEmail', isEqualTo: email)
+//   //           .snapshots(),
+//   //       FirebaseFirestore.instance
+//   //           .collection('Records')
+//   //           .doc('Starting_time')
+//   //           .collection(
+//   //               '$currentDayNumber-$currentMonth-$currentYear {Checked In}')
+//   //           .where('userEmail', isEqualTo: email)
+//   //           .snapshots(),
+//   //       FirebaseFirestore.instance
+//   //           .collection('Records')
+//   //           .doc('Starting_time')
+//   //           .collection(
+//   //               '$currentDayNumber-$currentMonth-$currentYear {no_option_selected}')
+//   //           .where('userEmail', isEqualTo: email)
+//   //           .snapshots(),
+//   //     ]);
+//   //   }
+//   //
+//   //   streams.addAll([
+//   //     FirebaseFirestore.instance
+//   //         .collection('ClosingRecords')
+//   //         .doc('Closing_time')
+//   //         .collection('yes_Closed')
+//   //         .where('userEmail', isEqualTo: email)
+//   //         .snapshots(),
+//   //     FirebaseFirestore.instance
+//   //         .collection('ClosingRecords')
+//   //         .doc('Closing_time')
+//   //         .collection('no_Closed')
+//   //         .where('userEmail', isEqualTo: email)
+//   //         .snapshots(),
+//   //     FirebaseFirestore.instance
+//   //         .collection('ClosingRecords')
+//   //         .doc('Closing_time')
+//   //         .collection('no_option_selected_Closed')
+//   //         .where('userEmail', isEqualTo: email)
+//   //         .snapshots(),
+//   //   ]);
+//   //
+//   //   yield* CombineLatestStream.list(streams).map((snapshots) {
+//   //     List<Map<String, dynamic>> allRecords = [];
+//   //     for (var snapshot in snapshots) {
+//   //       allRecords.addAll(snapshot.docs.map((doc) {
+//   //         final data = doc.data();
+//   //         Timestamp timestamp = data['timestamp'] as Timestamp;
+//   //         DateTime dateTime = timestamp.toDate();
+//   //
+//   //         data['date'] = DateFormat('dd-MM-yyyy').format(dateTime);
+//   //         data['time'] = DateFormat('HH:mm').format(dateTime); // Remove seconds
+//   //         data['dayOfWeek'] = DateFormat('EEEE').format(dateTime);
+//   //         data.remove('userName'); // Clear userName
+//   //         data.remove('userEmail'); // Clear userEmail
+//   //         return data;
+//   //       }).toList());
+//   //     }
+//   //     return allRecords;
+//   //   });
+//   // }
+//
+//   Future<void> _clearRecords() async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     await prefs.remove('userRecords');
+//     setState(() {});
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     User? user = FirebaseAuth.instance.currentUser;
+//     String? email = user?.email;
+//
+//     return Scaffold(
+//         appBar: AppBar(
+//           title: const Text('User Records'),
+//           actions: [
+//             IconButton(
+//               icon: Icon(Icons.calendar_today),
+//               onPressed: () {
+//                 showMonthPicker(
+//                   context: context,
+//                   initialDate: _selectedDate,
+//                   firstDate: DateTime(DateTime.now().year - 5),
+//                   lastDate: DateTime(DateTime.now().year + 5),
+//                 ).then((date) {
+//                   if (date != null) {
+//                     setState(() {
+//                       _selectedDate = date;
+//                       _recordsStream = _createRecordsStream();
+//                     });
+//                   }
+//                 });
+//               },
+//             ),
+//           ],
+//         ),
+//         body: email == null
+//             ? const Center(child: Text('No user signed in'))
+//             : StreamBuilder<List<Map<String, dynamic>>>(
+//                 stream: _recordsStream,
+//                 builder: (context, snapshot) {
+//                   if (snapshot.connectionState == ConnectionState.waiting) {
+//                     return const Center(child: CircularProgressIndicator());
+//                   } else if (snapshot.hasError) {
+//                     return Center(child: Text('Error: ${snapshot.error}'));
+//                   } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+//                     return const Center(child: Text('No records found'));
+//                   } else {
+//                     List<Map<String, dynamic>> records = snapshot.data!;
+//                     Map<String, List<Map<String, dynamic>>> groupedRecords = {};
+//
+//                     for (var record in records) {
+//                       String dateKey =
+//                           '${record['dayOfWeek']} ${record['date']}';
+//                       if (groupedRecords[dateKey] == null) {
+//                         groupedRecords[dateKey] = [];
+//                       }
+//                       groupedRecords[dateKey]!.add(record);
+//                     }
+//
+//                     List<String> sortedKeys = groupedRecords.keys.toList();
+//                     sortedKeys.sort((a, b) {
+//                       DateTime dateA = DateFormat('EEEE dd-MM-yyyy').parse(a);
+//                       DateTime dateB = DateFormat('EEEE dd-MM-yyyy').parse(b);
+//                       return dateB.compareTo(dateA); // Sort in descending order
+//                     });
+//
+//                     return ListView.builder(
+//                       itemCount: sortedKeys.length,
+//                       itemBuilder: (context, index) {
+//                         String dateKey = sortedKeys[index];
+//                         List<Map<String, dynamic>> dateRecords =
+//                             groupedRecords[dateKey]!;
+//
+//                         return Column(
+//                           crossAxisAlignment: CrossAxisAlignment.start,
+//                           children: [
+//                             Padding(
+//                               padding: const EdgeInsets.all(8.0),
+//                               child: Text(
+//                                 dateKey,
+//                                 style: const TextStyle(
+//                                     fontSize: 18, fontWeight: FontWeight.bold),
+//                               ),
+//                             ),
+//                             ...dateRecords.map((record) {
+//                               return ListTile(
+//                                 subtitle: Column(
+//                                   crossAxisAlignment: CrossAxisAlignment.start,
+//                                   children: [
+//                                     Text('Status: ${record['action']}'),
+//                                     Text('Date: ${record['date']}'),
+//                                     Text('Time: ${record['time']}'),
+//                                     if (record.containsKey('source'))
+//                                       Text('Source: ${record['source']}'),
+//                                   ],
+//                                 ),
+//                               );
+//                             }).toList(),
+//                           ],
+//                         );
+//                       },
+//                     );
+//                   }
+//                 },
+//               ),
+//         floatingActionButton: FloatingActionButton(
+//           onPressed: _clearRecords,
+//           tooltip: 'Clear Records',
+//           child: Icon(Icons.clear),
+//         ));
+//   }
+// }
 
+// import 'package:attendance_mobile_app/Pages/pie_chart_records_page.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:firebase_auth/firebase_auth.dart';
+// import 'package:flutter/material.dart';
+// import 'package:intl/intl.dart';
+// import 'package:month_picker_dialog/month_picker_dialog.dart';
+// import 'package:rxdart/rxdart.dart';
+//
+// class ViewsPage extends StatefulWidget {
+//   const ViewsPage({super.key});
+//
+//   @override
+//   State<ViewsPage> createState() => _ViewsPageState();
+// }
+//
+// class _ViewsPageState extends State<ViewsPage> {
+//   late Stream<List<Map<String, dynamic>>> _recordsStream;
+//   DateTime _selectedDate = DateTime.now();
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     _recordsStream = _createRecordsStream();
+//   }
+//
+//   Stream<List<Map<String, dynamic>>> _createRecordsStream() async* {
+//     User? user = FirebaseAuth.instance.currentUser;
+//     if (user == null) {
+//       yield [];
+//       return;
+//     }
+//
+//     final email = user.email!;
+//     List<Stream<QuerySnapshot<Map<String, dynamic>>>> streams = [];
+//
+//     DateTime now = _selectedDate;
+//     DateTime startDate = DateTime(now.year, now.month, 1);
+//     DateTime endDate = DateTime(now.year, now.month + 1, 1).subtract(Duration(days: 1));
+//
+//     for (int i = 0; i <= endDate.day; i++) {
+//       DateTime currentDate = startDate.add(Duration(days: i));
+//       int currentMonth = currentDate.month;
+//       int currentYear = currentDate.year;
+//       String currentDayNumber = DateFormat('d').format(currentDate);
+//
+//       streams.addAll([
+//         FirebaseFirestore.instance
+//             .collection('Records')
+//             .doc('Starting_time')
+//             .collection(
+//             '$currentDayNumber-$currentMonth-$currentYear {yes_Inside}')
+//             .where('userEmail', isEqualTo: email)
+//             .snapshots(),
+//         FirebaseFirestore.instance
+//             .collection('Records')
+//             .doc('Starting_time')
+//             .collection(
+//             '$currentDayNumber-$currentMonth-$currentYear {yes_Outside}')
+//             .where('userEmail', isEqualTo: email)
+//             .snapshots(),
+//         FirebaseFirestore.instance
+//             .collection('Records')
+//             .doc('Starting_time')
+//             .collection('$currentDayNumber-$currentMonth-$currentYear {no}')
+//             .where('userEmail', isEqualTo: email)
+//             .snapshots(),
+//         FirebaseFirestore.instance
+//             .collection('Records')
+//             .doc('Starting_time')
+//             .collection(
+//             '$currentDayNumber-$currentMonth-$currentYear {no_option_selected}')
+//             .where('userEmail', isEqualTo: email)
+//             .snapshots(),
+//       ]);
+//     }
+//
+//     yield* CombineLatestStream.list(streams).map((snapshots) {
+//       List<Map<String, dynamic>> allRecords = [];
+//       for (var snapshot in snapshots) {
+//         allRecords.addAll(snapshot.docs.map((doc) {
+//           final data = doc.data();
+//           Timestamp timestamp = data['timestamp'] as Timestamp;
+//           DateTime dateTime = timestamp.toDate();
+//
+//           data['date'] = DateFormat('dd-MM-yyyy').format(dateTime);
+//           data['time'] = DateFormat('HH:mm').format(dateTime); // Remove seconds
+//           data['dayOfWeek'] = DateFormat('EEEE').format(dateTime);
+//           data.remove('userName'); // Clear userName
+//           data.remove('userEmail'); // Clear userEmail
+//           return data;
+//         }).toList());
+//       }
+//       return allRecords;
+//     });
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     User? user = FirebaseAuth.instance.currentUser;
+//     String? email = user?.email;
+//
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: const Text('User Records'),
+//         actions: [
+//           IconButton(
+//             icon: Icon(Icons.calendar_today),
+//             onPressed: () {
+//               showMonthPicker(
+//                 context: context,
+//                 initialDate: _selectedDate,
+//                 firstDate: DateTime(DateTime.now().year - 5),
+//                 lastDate: DateTime(DateTime.now().year + 5),
+//               ).then((date) {
+//                 if (date != null) {
+//                   setState(() {
+//                     _selectedDate = date;
+//                     _recordsStream = _createRecordsStream();
+//                   });
+//                 }
+//               });
+//             },
+//           ),
+//         ],
+//       ),
+//       body: email == null
+//           ? const Center(child: Text('No user signed in'))
+//           : StreamBuilder<List<Map<String, dynamic>>>(
+//         stream: _recordsStream,
+//         builder: (context, snapshot) {
+//           if (snapshot.connectionState == ConnectionState.waiting) {
+//             return const Center(child: CircularProgressIndicator());
+//           } else if (snapshot.hasError) {
+//             return Center(child: Text('Error: ${snapshot.error}'));
+//           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+//             return const Center(child: Text('No records found'));
+//           } else {
+//             List<Map<String, dynamic>> records = snapshot.data!;
+//             Map<String, List<Map<String, dynamic>>> groupedRecords = {};
+//
+//             for (var record in records) {
+//               String dateKey = '${record['dayOfWeek']} ${record['date']}';
+//               if (groupedRecords[dateKey] == null) {
+//                 groupedRecords[dateKey] = [];
+//               }
+//               groupedRecords[dateKey]!.add(record);
+//             }
+//
+//             List<String> sortedKeys = groupedRecords.keys.toList();
+//             sortedKeys.sort((a, b) {
+//               DateTime dateA = DateFormat('EEEE dd-MM-yyyy').parse(a);
+//               DateTime dateB = DateFormat('EEEE dd-MM-yyyy').parse(b);
+//               return dateB.compareTo(dateA); // Sort in descending order
+//             });
+//
+//             return ListView.builder(
+//               itemCount: sortedKeys.length,
+//               itemBuilder: (context, index) {
+//                 String dateKey = sortedKeys[index];
+//                 List<Map<String, dynamic>> dateRecords =
+//                 groupedRecords[dateKey]!;
+//
+//                 return Column(
+//                   crossAxisAlignment: CrossAxisAlignment.start,
+//                   children: [
+//                     Padding(
+//                       padding: const EdgeInsets.all(8.0),
+//                       child: Text(
+//                         dateKey,
+//                         style: const TextStyle(
+//                             fontSize: 18, fontWeight: FontWeight.bold),
+//                       ),
+//                     ),
+//                     ...dateRecords.map((record) {
+//                       return ListTile(
+//                         subtitle: Column(
+//                           crossAxisAlignment: CrossAxisAlignment.start,
+//                           children: [
+//                             Text('Status: ${record['action']}'),
+//                             Text('Date: ${record['date']}'),
+//                             Text('Time: ${record['time']}'),
+//                             if (record.containsKey('source'))
+//                               Text('Source: ${record['source']}'),
+//                           ],
+//                         ),
+//                         onTap: () {
+//                           Navigator.push(
+//                             context,
+//                             MaterialPageRoute(
+//                               builder: (context) => RecordsPage(
+//                                 section: record['action'],
+//                                 records: snapshot.data!,
+//                               ),
+//                             ),
+//                           );
+//                         },
+//                       );
+//                     }).toList(),
+//                   ],
+//                 );
+//               },
+//             );
+//           }
+//         },
+//       ),
+//     );
+//   }
+// }
+// import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:firebase_auth/firebase_auth.dart';
+// import 'package:flutter/material.dart';
+// import 'package:intl/intl.dart';
+// import 'package:month_picker_dialog/month_picker_dialog.dart';
+// import 'package:rxdart/rxdart.dart';
+// import 'package:shared_preferences/shared_preferences.dart';
+//
+// class ViewsPage extends StatefulWidget {
+//   const ViewsPage({super.key});
+//
+//   @override
+//   State<ViewsPage> createState() => _ViewsPageState();
+// }
+//
+// class _ViewsPageState extends State<ViewsPage> {
+//   late Stream<List<Map<String, dynamic>>> _recordsStream;
+//   DateTime _selectedDate = DateTime.now();
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     _recordsStream = _createRecordsStream();
+//   }
+//
+//   Map<String, dynamic> convertStringToTimestamp(Map<String, dynamic> record) {
+//     if (record['timestamp'] is String) {
+//       record['timestamp'] =
+//           Timestamp.fromDate(DateTime.parse(record['timestamp']).toUtc());
+//     }
+//     return record;
+//   }
+//
+//   Map<String, dynamic> convertTimestampToString(Map<String, dynamic> record) {
+//     if (record['timestamp'] is Timestamp) {
+//       record['timestamp'] =
+//           (record['timestamp'] as Timestamp).toDate().toUtc().toIso8601String();
+//     }
+//     return record;
+//   }
+//
+//   Stream<List<Map<String, dynamic>>> _createRecordsStream() async* {
+//     User? user = FirebaseAuth.instance.currentUser;
+//     if (user == null) {
+//       yield [];
+//       return;
+//     }
+//
+//     final email = user.email!;
+//     List<Stream<QuerySnapshot<Map<String, dynamic>>>> streams = [];
+//
+//     DateTime now = _selectedDate;
+//     DateTime startDate = DateTime(now.year, now.month, 1);
+//     DateTime endDate =
+//         DateTime(now.year, now.month + 1, 1).subtract(Duration(days: 1));
+//
+//     for (int i = 0; i <= endDate.day; i++) {
+//       DateTime currentDate = startDate.add(Duration(days: i));
+//       int currentMonth = currentDate.month;
+//       int currentYear = currentDate.year;
+//       String currentDayNumber = DateFormat('d').format(currentDate);
+//
+//       streams.addAll([
+//         FirebaseFirestore.instance
+//             .collection('Records')
+//             .doc('Starting_time')
+//             .collection(
+//                 '$currentDayNumber-$currentMonth-$currentYear {yes_Inside}')
+//             .where('userEmail', isEqualTo: email)
+//             .snapshots(),
+//         FirebaseFirestore.instance
+//             .collection('Records')
+//             .doc('Starting_time')
+//             .collection(
+//                 '$currentDayNumber-$currentMonth-$currentYear {yes_Outside}')
+//             .where('userEmail', isEqualTo: email)
+//             .snapshots(),
+//         FirebaseFirestore.instance
+//             .collection('Records')
+//             .doc('Starting_time')
+//             .collection('$currentDayNumber-$currentMonth-$currentYear {no}')
+//             .where('userEmail', isEqualTo: email)
+//             .snapshots(),
+//         FirebaseFirestore.instance
+//             .collection('Records')
+//             .doc('Starting_time')
+//             .collection(
+//                 '$currentDayNumber-$currentMonth-$currentYear {Checked In}')
+//             .where('userEmail', isEqualTo: email)
+//             .snapshots(),
+//         FirebaseFirestore.instance
+//             .collection('Records')
+//             .doc('Starting_time')
+//             .collection(
+//                 '$currentDayNumber-$currentMonth-$currentYear {no_option_selected}')
+//             .where('userEmail', isEqualTo: email)
+//             .snapshots(),
+//       ]);
+//     }
+//
+//     streams.addAll([
+//       FirebaseFirestore.instance
+//           .collection('ClosingRecords')
+//           .doc('Closing_time')
+//           .collection('yes_Closed')
+//           .where('userEmail', isEqualTo: email)
+//           .snapshots(),
+//       FirebaseFirestore.instance
+//           .collection('ClosingRecords')
+//           .doc('Closing_time')
+//           .collection('no_Closed')
+//           .where('userEmail', isEqualTo: email)
+//           .snapshots(),
+//       FirebaseFirestore.instance
+//           .collection('ClosingRecords')
+//           .doc('Closing_time')
+//           .collection('no_option_selected_Closed')
+//           .where('userEmail', isEqualTo: email)
+//           .snapshots(),
+//     ]);
+//
+//     yield* CombineLatestStream.list(streams).map((snapshots) {
+//       List<Map<String, dynamic>> allRecords = [];
+//       for (var snapshot in snapshots) {
+//         allRecords.addAll(snapshot.docs.map((doc) {
+//           final data = doc.data();
+//           Timestamp timestamp = data['timestamp'] as Timestamp;
+//           DateTime dateTime = timestamp.toDate();
+//
+//           data['date'] = DateFormat('dd-MM-yyyy').format(dateTime);
+//           data['time'] = DateFormat('HH:mm').format(dateTime); // Remove seconds
+//           data['dayOfWeek'] = DateFormat('EEEE').format(dateTime);
+//           data.remove('userName'); // Clear userName
+//           data.remove('userEmail'); // Clear userEmail
+//           print("Fetched record: $data"); // Debugging print statement
+//
+//           allRecords.add(data);
+//
+//           return data;
+//         }).toList());
+//       }
+//       print(
+//           "Total records fetched: ${allRecords.length}"); // Debugging print statement
+//       return allRecords;
+//     });
+//   }
+//
+//   Future<void> _clearRecords() async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     await prefs.remove('userRecords');
+//     setState(() {});
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     User? user = FirebaseAuth.instance.currentUser;
+//     String? email = user?.email;
+//
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: const Text('User Records'),
+//         actions: [
+//           IconButton(
+//             icon: Icon(Icons.calendar_today),
+//             onPressed: () {
+//               showMonthPicker(
+//                 context: context,
+//                 initialDate: _selectedDate,
+//                 firstDate: DateTime(DateTime.now().year - 5),
+//                 lastDate: DateTime(DateTime.now().year + 5),
+//               ).then((date) {
+//                 if (date != null) {
+//                   setState(() {
+//                     _selectedDate = date;
+//                     _recordsStream = _createRecordsStream();
+//                   });
+//                 }
+//               });
+//             },
+//           ),
+//         ],
+//       ),
+//       body: email == null
+//           ? const Center(child: Text('No user signed in'))
+//           : StreamBuilder<List<Map<String, dynamic>>>(
+//               stream: _recordsStream,
+//               builder: (context, snapshot) {
+//                 if (snapshot.connectionState == ConnectionState.waiting) {
+//                   return const Center(child: CircularProgressIndicator());
+//                 } else if (snapshot.hasError) {
+//                   return Center(child: Text('Error: ${snapshot.error}'));
+//                 } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+//                   return const Center(child: Text('No records found'));
+//                 } else {
+//                   List<Map<String, dynamic>> records = snapshot.data!;
+//                   Map<String, List<Map<String, dynamic>>> groupedRecords = {};
+//
+//                   for (var record in records) {
+//                     String dateKey = '${record['dayOfWeek']} ${record['date']}';
+//                     if (groupedRecords[dateKey] == null) {
+//                       groupedRecords[dateKey] = [];
+//                     }
+//                     groupedRecords[dateKey]!.add(record);
+//                   }
+//
+//                   List<String> sortedKeys = groupedRecords.keys.toList();
+//                   sortedKeys.sort((a, b) {
+//                     DateTime dateA = DateFormat('EEEE dd-MM-yyyy').parse(a);
+//                     DateTime dateB = DateFormat('EEEE dd-MM-yyyy').parse(b);
+//                     return dateB.compareTo(dateA); // Sort in descending order
+//                   });
+//
+//                   return ListView.builder(
+//                     itemCount: sortedKeys.length,
+//                     itemBuilder: (context, index) {
+//                       String dateKey = sortedKeys[index];
+//                       List<Map<String, dynamic>> dateRecords =
+//                           groupedRecords[dateKey]!;
+//
+//                       return Column(
+//                         crossAxisAlignment: CrossAxisAlignment.start,
+//                         children: [
+//                           Padding(
+//                             padding: const EdgeInsets.all(8.0),
+//                             child: Text(
+//                               dateKey,
+//                               style: const TextStyle(
+//                                   fontSize: 18, fontWeight: FontWeight.bold),
+//                             ),
+//                           ),
+//                           ...dateRecords.map((record) {
+//                             return ListTile(
+//                               subtitle: Column(
+//                                 crossAxisAlignment: CrossAxisAlignment.start,
+//                                 children: [
+//                                   Text('Status: ${record['action']}'),
+//                                   Text('Date: ${record['date']}'),
+//                                   Text('Time: ${record['time']}'),
+//                                   if (record.containsKey('source'))
+//                                     Text('Source: ${record['source']}'),
+//                                 ],
+//                               ),
+//                             );
+//                           }).toList(),
+//                         ],
+//                       );
+//                     },
+//                   );
+//                 }
+//               },
+//             ),
+//       floatingActionButton: FloatingActionButton(
+//         onPressed: _clearRecords,
+//         tooltip: 'Clear Records',
+//         child: Icon(Icons.clear),
+//       ),
+//     );
+//   }
+// }
 /* Future<void> _showNotificationWithActions() async {
   const AndroidNotificationDetails androidNotificationDetails =
       AndroidNotificationDetails(
@@ -7284,3 +8105,414 @@
 //     );
 //   }
 // }
+// void _signIn() async {
+//   if (_formKey.currentState?.validate() ?? false) {
+//     setState(() {
+//       isLoading = true; // Set loading state to true
+//     });
+//     try {
+//       // String userName = _userName.text;
+//       String userEmail = _userEmail.text;
+//       String userPassword = _userPassword.text;
+//
+//       User? user =
+//           await _auth.signInWithEmailAndPassword(userEmail, userPassword);
+//
+//       if (user != null) {
+//         print('User is successfully Signed In ');
+//
+//         Navigator.pushNamed(context, '/home');
+//
+//         SharedPreferences prefs = await SharedPreferences.getInstance();
+//         // prefs.setString('UserName', userName);
+//         prefs.setString('userPassword', userPassword);
+//         prefs.setString('userEmail', userEmail);
+//       } else {
+//         print('ERROR');
+//
+//         ScaffoldMessenger.of(context).showSnackBar(
+//           const SnackBar(
+//             content: Text('Sign In  Failed. Try Again!! '),
+//             backgroundColor: Colors.red, // Optionally set a background color
+//             duration: Duration(seconds: 3), // Duration to show the SnackBar
+//           ),
+//         );
+//       }
+//     } catch (e, s) {
+//       print('Error');
+//       print(s);
+//     } finally {
+//       setState(() {
+//         isLoading = false; // Set loading state to true
+//       });
+//     }
+//   }
+// }
+//}
+
+// import 'package:attendance_mobile_app/Auth_implementations_services/auth_services.dart';
+// import 'package:firebase_auth/firebase_auth.dart';
+// import 'package:flutter/material.dart';
+// import 'package:shared_preferences/shared_preferences.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
+//
+// class AuthPage extends StatefulWidget {
+//   const AuthPage({super.key});
+//
+//   @override
+//   State<AuthPage> createState() => _AuthPageState();
+// }
+//
+// class _AuthPageState extends State<AuthPage> {
+//   late SharedPreferences prefs;
+//
+//   final _formKey = GlobalKey<FormState>();
+//   final FirebaseAuthService _auth = FirebaseAuthService();
+//   bool _isPasswordVisible = true;
+//
+//   bool isLoading = false;
+//
+//   final TextEditingController _userName = TextEditingController();
+//   final TextEditingController _userEmail = TextEditingController();
+//   final TextEditingController _userPassword = TextEditingController();
+//
+//   String? _selectedDepartment;
+//
+//   @override
+//   void dispose() {
+//     super.dispose();
+//     _userName.dispose();
+//     _userEmail.dispose();
+//     _userPassword.dispose();
+//   }
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     initPrefs();
+//   }
+//
+//   initPrefs() async {
+//     prefs = await SharedPreferences.getInstance();
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       body: Center(
+//         child: SingleChildScrollView(
+//           child: Form(
+//             key: _formKey,
+//             child: Card(
+//               child: Padding(
+//                 padding: const EdgeInsets.all(16.0),
+//                 child: Column(
+//                   mainAxisAlignment: MainAxisAlignment.center,
+//                   children: [
+//                     const Text('Welcome'),
+//                     const SizedBox(
+//                       height: 10,
+//                     ),
+//                     const Text('-------Sign In-------'),
+//                     const SizedBox(
+//                       height: 10,
+//                     ),
+//                     SizedBox(
+//                       width: 300,
+//                       child: TextFormField(
+//                         validator: (name) => name == null || name.isEmpty
+//                             ? 'Field Required'
+//                             : (name.length < 4 ? 'Enter full name' : null),
+//                         controller: _userName,
+//                         decoration: InputDecoration(
+//                           border: OutlineInputBorder(
+//                             borderRadius: BorderRadius.circular(10),
+//                           ),
+//                           label: const Text('Enter your name'),
+//                         ),
+//                       ),
+//                     ),
+//                     const SizedBox(
+//                       height: 10,
+//                     ),
+//                     SizedBox(
+//                       width: 300,
+//                       child: TextFormField(
+//                         controller: _userEmail,
+//                         decoration: InputDecoration(
+//                           border: OutlineInputBorder(
+//                             borderRadius: BorderRadius.circular(10),
+//                           ),
+//                           label: const Text('Enter your email'),
+//                         ),
+//                         validator: (email) {
+//                           if (email == null || email.isEmpty) {
+//                             return 'Field required';
+//                           }
+//                           String pattern =
+//                               r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'; // Basic email pattern
+//                           RegExp regex = RegExp(pattern);
+//                           if (!regex.hasMatch((email))) {
+//                             return ' Enter valid email';
+//                           }
+//                           return null;
+//                         },
+//                       ),
+//                     ),
+//                     const SizedBox(height: 10),
+//                     SizedBox(
+//                       width: 300,
+//                       child: DropdownButtonFormField<String>(
+//                         value: _selectedDepartment,
+//                         decoration: InputDecoration(
+//                           border: OutlineInputBorder(
+//                             borderRadius: BorderRadius.circular(10),
+//                           ),
+//                           label: const Text('Select your department'),
+//                         ),
+//                         items: const [
+//                           DropdownMenuItem(
+//                             value: 'Software Development',
+//                             child: Text('Software Development'),
+//                           ),
+//                           DropdownMenuItem(
+//                             value: 'Systems Integration',
+//                             child: Text('Systems Integration'),
+//                           ),
+//                           DropdownMenuItem(
+//                             value: 'IT Consulting',
+//                             child: Text('IT Consulting'),
+//                           ),
+//                         ],
+//                         onChanged: (value) {
+//                           setState(() {
+//                             _selectedDepartment = value;
+//                           });
+//                         },
+//                         validator: (value) =>
+//                         value == null ? 'Field required' : null,
+//                       ),
+//                     ),
+//                     const SizedBox(height: 10),
+//                     Padding(
+//                       padding: const EdgeInsets.all(8),
+//                       child: isLoading
+//                           ? const CircularProgressIndicator()
+//                           : ElevatedButton(
+//                         onPressed: _checkDetails,
+//                         child: const Text('Check Details'),
+//                       ),
+//                     ),
+//                   ],
+//                 ),
+//               ),
+//             ),
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+//
+//   void _checkDetails() async {
+//     if (_formKey.currentState?.validate() ?? false) {
+//       setState(() {
+//         isLoading = true; // Set loading state to true
+//       });
+//       try {
+//         String userName = _userName.text;
+//         String userEmail = _userEmail.text;
+//         String department = _selectedDepartment!;
+//
+//         DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+//             .collection('users')
+//             .doc(userEmail)
+//             .get();
+//
+//         if (userSnapshot.exists &&
+//             userSnapshot.get('name') == userName &&
+//             userSnapshot.get('department') == department) {
+//           ScaffoldMessenger.of(context).showSnackBar(
+//             const SnackBar(
+//               content: Text('Inputed details are correct'),
+//               backgroundColor: Colors.green,
+//               duration: Duration(seconds: 3),
+//             ),
+//           );
+//           _showPasswordDialog();
+//         } else {
+//           ScaffoldMessenger.of(context).showSnackBar(
+//             const SnackBar(
+//               content: Text('Details are incorrect. Try Again!!'),
+//               backgroundColor: Colors.red,
+//               duration: Duration(seconds: 3),
+//             ),
+//           );
+//         }
+//       } catch (e) {
+//         print('Error: $e');
+//         ScaffoldMessenger.of(context).showSnackBar(
+//           const SnackBar(
+//             content: Text('An error occurred. Try Again!!'),
+//             backgroundColor: Colors.red,
+//             duration: Duration(seconds: 3),
+//           ),
+//         );
+//       } finally {
+//         setState(() {
+//           isLoading = false; // Set loading state to false
+//         });
+//       }
+//     }
+//   }
+//
+//   void _showPasswordDialog() {
+//     showDialog(
+//       context: context,
+//       builder: (context) {
+//         final TextEditingController passwordController =
+//         TextEditingController();
+//         final TextEditingController confirmPasswordController =
+//         TextEditingController();
+//         final GlobalKey<FormState> _passwordFormKey = GlobalKey<FormState>();
+//
+//         return AlertDialog(
+//           title: const Text('Set Password'),
+//           content: Form(
+//             key: _passwordFormKey,
+//             child: Column(
+//               mainAxisSize: MainAxisSize.min,
+//               children: [
+//                 TextFormField(
+//                   controller: passwordController,
+//                   obscureText: true,
+//                   decoration: const InputDecoration(
+//                     labelText: 'Password',
+//                     hintText: 'At least 6 characters with a number',
+//                   ),
+//                   validator: (value) {
+//                     if (value!.length < 6) {
+//                       return 'Password must be at least 6 characters long';
+//                     }
+//                     if (!value.contains(RegExp(r'\d'))) {
+//                       return 'Password must contain at least one number';
+//                     }
+//                     return null;
+//                   },
+//                 ),
+//                 TextFormField(
+//                   controller: confirmPasswordController,
+//                   obscureText: true,
+//                   decoration: const InputDecoration(
+//                     labelText: 'Confirm Password',
+//                   ),
+//                   validator: (value) {
+//                     if (value != passwordController.text) {
+//                       return 'Passwords do not match';
+//                     }
+//                     return null;
+//                   },
+//                 ),
+//               ],
+//             ),
+//           ),
+//           actions: [
+//             TextButton(
+//               onPressed: () => Navigator.pop(context),
+//               child: const Text('Cancel'),
+//             ),
+//             ElevatedButton(
+//               onPressed: () async {
+//                 if (_passwordFormKey.currentState?.validate() ?? false) {
+//                   String userEmail = _userEmail.text;
+//                   String userPassword = passwordController.text;
+//
+//                   try {
+//                     User? user = await _auth.signInWithEmailAndPassword(
+//                         userEmail, userPassword, _userName.text);
+//
+//                     if (user != null) {
+//                       Navigator.pop(context);
+//                       Navigator.pushNamed(context, '/home');
+//                     } else {
+//                       ScaffoldMessenger.of(context).showSnackBar(
+//                         const SnackBar(
+//                           content: Text('Authentication Failed. Try Again!!'),
+//                           backgroundColor: Colors.red,
+//                           duration: Duration(seconds: 3),
+//                         ),
+//                       );
+//                     }
+//                   } catch (e) {
+//                     print('Error: $e');
+//                     ScaffoldMessenger.of(context).showSnackBar(
+//                       const SnackBar(
+//                         content: Text('An error occurred. Try Again!!'),
+//                         backgroundColor: Colors.red,
+//                         duration: Duration(seconds: 3),
+//                       ),
+//                     );
+//                   }
+//                 }
+//               },
+//               child: const Text('Authenticate'),
+//             ),
+//           ],
+//         );
+//       },
+//     );
+//   }
+// }
+// void _showRecordsDialog(String section, List<Map<String, dynamic>> records) {
+//   showDialog(
+//     context: context,
+//     builder: (context) {
+//       return AlertDialog(
+//         title: Text('Records for $section'),
+//         content: Container(
+//           width: double.maxFinite,
+//           child: ListView.builder(
+//             shrinkWrap: true,
+//             itemCount: records.length,
+//             itemBuilder: (context, index) {
+//               Map<String, dynamic> record = records[index];
+//               return ListTile(
+//                 title: Text(record['date'] ?? 'No Date'),
+//                 subtitle: Text(record['dayOfWeek'] ?? 'No Day'),
+//                 trailing: Text(record['time'] ?? 'No Time'),
+//               );
+//             },
+//           ),
+//         ),
+//         actions: [
+//           TextButton(
+//             onPressed: () {
+//               Navigator.of(context).pop();
+//             },
+//             child: Text('Close'),
+//           ),
+//         ],
+//       );
+//     },
+//   );
+// }
+
+// void _onSectionTapped(String section) async {
+//   List<Map<String, dynamic>> records = await _fetchRecords(section);
+//   _showRecordsDialog(section, records);
+// }
+// showDialog(
+//   context: context,
+//   builder: (BuildContext context) {
+//     return AlertDialog(
+//       content: const ProfilePage(),
+//       actions: [
+//         TextButton(
+//           onPressed: () {
+//             Navigator.of(context).pop();
+//           },
+//           child: const Text('Close'),
+//         ),
+//       ],
+//     );
+//   },
+// );
