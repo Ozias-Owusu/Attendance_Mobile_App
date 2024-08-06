@@ -1679,7 +1679,6 @@
   await flutterLocalNotificationsPlugin.show(
       0, '...', '...', notificationDetails);
 } */
-
 // import 'package:flutter/material.dart';
 // import 'package:shared_preferences/shared_preferences.dart';
 // import 'package:workmanager/workmanager.dart';
