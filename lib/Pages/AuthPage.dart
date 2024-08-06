@@ -465,7 +465,6 @@ class _AuthPageState extends State<AuthPage> {
   late SharedPreferences prefs;
   final _formKey = GlobalKey<FormState>();
   final FirebaseAuth _auth = FirebaseAuth.instance; // Use FirebaseAuth directly
-  bool _isPasswordVisible = true;
   bool isLoading = false;
   final TextEditingController _userName = TextEditingController();
   final TextEditingController _userEmail = TextEditingController();
@@ -568,111 +567,109 @@ class _AuthPageState extends State<AuthPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: SingleChildScrollView(
-          child: Form(
-            key: _formKey,
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text('Welcome'),
-                    const SizedBox(
-                      height: 10,
-                    ),
-                    const Text('-------Sign In-------'),
-                    const SizedBox(
-                      height: 10,
-                    ),
-                    SizedBox(
-                      width: 300,
-                      child: TextFormField(
-                        validator: (name) => name == null || name.isEmpty
-                            ? 'Field Required'
-                            : (name.length < 4 ? 'Enter full name' : null),
-                        controller: _userName,
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          label: const Text('Enter your name'),
+        child: Form(
+          key: _formKey,
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Welcome'),
+                  const SizedBox(
+                    height: 10,
+                  ),
+                  const Text('-------Sign In-------'),
+                  const SizedBox(
+                    height: 10,
+                  ),
+                  SizedBox(
+                    width: 300,
+                    child: TextFormField(
+                      validator: (name) => name == null || name.isEmpty
+                          ? 'Field Required'
+                          : (name.length < 4 ? 'Enter full name' : null),
+                      controller: _userName,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
                         ),
+                        label: const Text('Enter your name'),
                       ),
                     ),
-                    const SizedBox(
-                      height: 10,
-                    ),
-                    SizedBox(
-                      width: 300,
-                      child: TextFormField(
-                        controller: _userEmail,
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          label: const Text('Enter your email'),
+                  ),
+                  const SizedBox(
+                    height: 10,
+                  ),
+                  SizedBox(
+                    width: 300,
+                    child: TextFormField(
+                      controller: _userEmail,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        validator: (email) {
-                          if (email == null || email.isEmpty) {
-                            return 'Field required';
-                          }
-                          String pattern =
-                              r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'; // Basic email pattern
-                          RegExp regex = RegExp(pattern);
-                          if (!regex.hasMatch((email))) {
-                            return ' Enter valid email';
-                          }
-                          return null;
-                        },
+                        label: const Text('Enter your email'),
                       ),
+                      validator: (email) {
+                        if (email == null || email.isEmpty) {
+                          return 'Field required';
+                        }
+                        String pattern =
+                            r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'; // Basic email pattern
+                        RegExp regex = RegExp(pattern);
+                        if (!regex.hasMatch((email))) {
+                          return ' Enter valid email';
+                        }
+                        return null;
+                      },
                     ),
-                    const SizedBox(height: 10),
-                    SizedBox(
-                      width: 300,
-                      child: DropdownButtonFormField<String>(
-                        value: _selectedDepartment,
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          label: const Text('Select your department'),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: 300,
+                    child: DropdownButtonFormField<String>(
+                      value: _selectedDepartment,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        items: const [
-                          DropdownMenuItem(
-                            value: 'Software Development',
-                            child: Text('Software Development'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'Systems Integration',
-                            child: Text('Systems Integration'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'IT Consulting',
-                            child: Text('IT Consulting'),
-                          ),
-                        ],
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedDepartment = value;
-                          });
-                        },
-                        validator: (value) =>
-                            value == null ? 'Field required' : null,
+                        label: const Text('Select your department'),
                       ),
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'Software Development',
+                          child: Text('Software Development'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Systems Integration',
+                          child: Text('Systems Integration'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'IT Consulting',
+                          child: Text('IT Consulting'),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedDepartment = value;
+                        });
+                      },
+                      validator: (value) =>
+                          value == null ? 'Field required' : null,
                     ),
-                    const SizedBox(height: 10),
-                    Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: isLoading
-                          ? const CircularProgressIndicator()
-                          : ElevatedButton(
-                              onPressed: _checkDetails,
-                              child: const Text('Check Details'),
-                            ),
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 10),
+                  Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: isLoading
+                        ? const CircularProgressIndicator()
+                        : ElevatedButton(
+                            onPressed: _checkDetails,
+                            child: const Text('Check Details'),
+                          ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -749,7 +746,6 @@ class _AuthPageState extends State<AuthPage> {
     // State variables to manage visibility
     bool _isPasswordVisible = false;
     bool _isConfirmPasswordVisible = false;
-
     // Controllers for password fields
     final TextEditingController passwordController = TextEditingController();
     final TextEditingController confirmPasswordController =
@@ -854,4 +850,113 @@ class _AuthPageState extends State<AuthPage> {
       },
     );
   }
+  // void _showPasswordDialog() {
+  //   // State variables to manage visibility
+  //   bool _isPasswordVisible = false;
+  //   bool _isConfirmPasswordVisible = false;
+  //
+  //   // Controllers for password fields
+  //   final TextEditingController passwordController = TextEditingController();
+  //   final TextEditingController confirmPasswordController =
+  //       TextEditingController();
+  //   final _passwordFormKey = GlobalKey<FormState>();
+  //
+  //   showDialog(
+  //     context: context,
+  //     builder: (context) {
+  //       return AlertDialog(
+  //         title: const Text('Create Password'),
+  //         content: Form(
+  //           key: _passwordFormKey,
+  //           child: Column(
+  //             mainAxisSize: MainAxisSize.min,
+  //             children: [
+  //               TextFormField(
+  //                 controller: passwordController,
+  //                 obscureText: !_isPasswordVisible,
+  //                 decoration: InputDecoration(
+  //                   labelText: 'Password',
+  //                   suffixIcon: IconButton(
+  //                     icon: Icon(_isPasswordVisible
+  //                         ? Icons.visibility
+  //                         : Icons.visibility_off),
+  //                     onPressed: () {
+  //                       setState(() {
+  //                         _isPasswordVisible = !_isPasswordVisible;
+  //                       });
+  //                     },
+  //                   ),
+  //                 ),
+  //                 validator: (value) => value == null || value.isEmpty
+  //                     ? 'Password is required'
+  //                     : (value.length < 6
+  //                         ? 'Password must be at least 6 characters'
+  //                         : null),
+  //               ),
+  //               const SizedBox(height: 10),
+  //               TextFormField(
+  //                 controller: confirmPasswordController,
+  //                 obscureText: !_isConfirmPasswordVisible,
+  //                 decoration: InputDecoration(
+  //                   labelText: 'Confirm Password',
+  //                   suffixIcon: IconButton(
+  //                     icon: Icon(_isConfirmPasswordVisible
+  //                         ? Icons.visibility
+  //                         : Icons.visibility_off),
+  //                     onPressed: () {
+  //                       setState(() {
+  //                         _isConfirmPasswordVisible =
+  //                             !_isConfirmPasswordVisible;
+  //                       });
+  //                     },
+  //                   ),
+  //                 ),
+  //                 validator: (value) => value == null || value.isEmpty
+  //                     ? 'Confirm Password is required'
+  //                     : (value != passwordController.text
+  //                         ? 'Passwords do not match'
+  //                         : null),
+  //               ),
+  //             ],
+  //           ),
+  //         ),
+  //         actions: [
+  //           TextButton(
+  //             onPressed: () async {
+  //               if (_passwordFormKey.currentState?.validate() ?? false) {
+  //                 String password = passwordController.text.trim();
+  //
+  //                 // Save password to SharedPreferences
+  //                 await prefs.setString('password', password);
+  //
+  //                 // Create Firebase Auth user
+  //                 try {
+  //                   await _auth.createUserWithEmailAndPassword(
+  //                     email: _userEmail.text.trim(),
+  //                     password: password,
+  //                   );
+  //
+  //                   Navigator.pushNamed(context, '/home'); // Navigate to home
+  //                 } catch (e) {
+  //                   ScaffoldMessenger.of(context).showSnackBar(
+  //                     SnackBar(
+  //                       content: Text('Error creating account: $e'),
+  //                       backgroundColor: Colors.red,
+  //                       duration: Duration(seconds: 3),
+  //                     ),
+  //                   );
+  //                 }
+  //               }
+  //             },
+  //             child: const Text('Create Password'),
+  //           ),
+  //           TextButton(
+  //             onPressed: () => Navigator.pop(context),
+  //             child: const Text('Cancel'),
+  //           ),
+  //         ],
+  //       );
+  //     },
+  //   );
+  // }
 }

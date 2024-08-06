@@ -12,37 +12,19 @@ import 'package:workmanager/workmanager.dart';
 class NotificationService {
   static final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
-
-  // Notifications
-  // (
-  // Display message with buttons-done
-  // Adding geolocation-done
-  // Recording actions to firestore- fixed
-  //add a date range- done
-  // displaying records (automatically delete after a month)-
-  //Fix location access permissions-done
-  //Splash screen -  needs work
-  //Notifications adjustment - done
-  //Profile page and settings page completion - done for me
-  //Views Page - d0ne
-  //)
-
   Future<void> onDidReceiveNotificationResponse(
       NotificationResponse notificationResponse) async {
     // final dialogService = DialogService(context as BuildContext);
     // dialogService.showMyDialog();
   }
-
   static Future<void> onActionReceived(receivedAction) async {
     // Get the current month and year
     try {
       await Firebase.initializeApp();
-
       // Retrieve the user's name from shared preferences
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? userName = prefs.getString('UserName') ?? 'Unknown User';
       String? userEmail = prefs.getString('userEmail') ?? 'Unknown Email';
-
       DateTime now = DateTime.now();
       int currentMonth = now.month;
       int currentYear = now.year;
@@ -67,7 +49,6 @@ class NotificationService {
               break;
           }
           break;
-
         case 1: // Notification ID for "Have you closed?"
           switch (receivedAction.actionId) {
             case 'Yes_Button':
@@ -82,7 +63,6 @@ class NotificationService {
               break;
           }
           break;
-
         default:
           print('Other action or notification clicked');
       }
@@ -113,7 +93,6 @@ class NotificationService {
       targetLatitude,
       targetLongitude,
     );
-
     // Check if the user is within the specified radius
     if (distance <= radius) {
       // Save "Yes im at work" with the current time to Firestore
@@ -127,7 +106,7 @@ class NotificationService {
         'action': 'Checked In',
         'dayOfWeek': currentDay,
         'userEmail': userEmail ?? 'Unknown',
-        'userName': userName ?? 'Unknown',
+        // 'userName': userName ?? 'Unknown',
       });
       print('Yes button clicked inside radius');
     } else {
@@ -142,7 +121,7 @@ class NotificationService {
         'action': 'Not Checked In(Outside)',
         'dayOfWeek': currentDay,
         'userEmail': userEmail ?? 'Unknown',
-        'userName': userName ?? 'Unknown',
+        // 'userName': userName ?? 'Unknown',
       });
       print('Yes button clicked outside radius');
     }
@@ -165,7 +144,7 @@ class NotificationService {
       'action': 'Not Checked In',
       'dayOfWeek': currentDay,
       'userEmail': userEmail ?? 'Unknown',
-      'userName': userName ?? 'Unknown',
+      // 'userName': userName ?? 'Unknown',
     });
     print('No button clicked');
   }
@@ -187,7 +166,7 @@ class NotificationService {
       'action': 'Checked Out',
       'dayOfWeek': currentDay,
       'userEmail': userEmail ?? 'Unknown',
-      'userName': userName ?? 'Unknown',
+      // 'userName': userName ?? 'Unknown',
     });
     print('Yes button clicked at closing time');
   }
@@ -209,7 +188,7 @@ class NotificationService {
       'action': 'Not Checked Out',
       'dayOfWeek': currentDay,
       'userEmail': userEmail ?? 'Unknown',
-      'userName': userName ?? 'Unknown',
+      // 'userName': userName ?? 'Unknown'/
     });
     print('No button clicked at closing time');
   }

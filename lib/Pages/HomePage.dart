@@ -1,7 +1,5 @@
 import 'dart:convert';
 
-import 'package:attendance_mobile_app/Pages/noifications_service_new.dart';
-import 'package:attendance_mobile_app/Pages/pie_chart_records_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -11,6 +9,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'noifications_service_new.dart';
 
 class HomePage extends StatefulWidget {
   static final GlobalKey<_HomePageState> homePageKey =
@@ -47,7 +47,6 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _loadAdditionalTextIndex();
-    NotificationService.showNotificationAt5('title', '');
     _saveUserDetails();
     _getCurrentLocation();
     _loadRecordsFromSharedPreferences().then((records) {
@@ -229,6 +228,68 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  // Future<List<Map<String, dynamic>>> _fetchRecords(String section) async {
+  //   try {
+  //     User? user = FirebaseAuth.instance.currentUser;
+  //     if (user == null) return [];
+  //
+  //     final email = user.email!;
+  //     List<Stream<QuerySnapshot<Map<String, dynamic>>>> streams = [];
+  //
+  //     DateTime now = DateTime.now();
+  //     DateTime startDate = DateTime(now.year, now.month, 1);
+  //     DateTime endDate = DateTime(now.year, now.month + 1, 0);
+  //
+  //     for (int i = 0; i <= endDate.day; i++) {
+  //       DateTime currentDate = startDate.add(Duration(days: i));
+  //       int currentMonth = currentDate.month;
+  //       int currentYear = currentDate.year;
+  //       String currentDayNumber = DateFormat('d').format(currentDate);
+  //
+  //       String collectionPath;
+  //       switch (section) {
+  //         case 'Yes (Inside)':
+  //           collectionPath =
+  //               '$currentDayNumber-$currentMonth-$currentYear {yes_Inside}';
+  //           break;
+  //         case 'Yes (Outside)':
+  //           collectionPath =
+  //               '$currentDayNumber-$currentMonth-$currentYear {yes_Outside}';
+  //           break;
+  //         case 'No':
+  //           collectionPath =
+  //               '$currentDayNumber-$currentMonth-$currentYear {no}';
+  //           break;
+  //         default:
+  //           collectionPath = '';
+  //       }
+  //
+  //       if (collectionPath.isNotEmpty) {
+  //         streams.add(
+  //           FirebaseFirestore.instance
+  //               .collection('Records')
+  //               .doc('Starting_time')
+  //               .collection(collectionPath)
+  //               .where('userEmail', isEqualTo: email)
+  //               .snapshots(),
+  //         );
+  //       }
+  //     }
+  //
+  //     // Add ClosingRecords
+  //     streams.add(
+  //       FirebaseFirestore.instance
+  //           .collection('ClosingRecords')
+  //           .doc('Closing_time')
+  //           .collection(section == 'Yes (Inside)'
+  //               ? 'yes_Closed'
+  //               : section == 'Yes (Outside)'
+  //                   ? 'no_Closed'
+  //                   : 'no_option_selected_Closed')
+  //           .where('userEmail', isEqualTo: email)
+  //           .snapshots(),
+  //     );
+
   Future<List<Map<String, dynamic>>> _fetchRecords(String section) async {
     try {
       User? user = FirebaseAuth.instance.currentUser;
@@ -249,15 +310,15 @@ class _HomePageState extends State<HomePage> {
 
         String collectionPath;
         switch (section) {
-          case 'Yes (Inside)':
+          case 'Checked In':
             collectionPath =
                 '$currentDayNumber-$currentMonth-$currentYear {yes_Inside}';
             break;
-          case 'Yes (Outside)':
+          case 'Not Checked In(Outside)':
             collectionPath =
                 '$currentDayNumber-$currentMonth-$currentYear {yes_Outside}';
             break;
-          case 'No':
+          case 'Not Checked In':
             collectionPath =
                 '$currentDayNumber-$currentMonth-$currentYear {no}';
             break;
@@ -282,15 +343,14 @@ class _HomePageState extends State<HomePage> {
         FirebaseFirestore.instance
             .collection('ClosingRecords')
             .doc('Closing_time')
-            .collection(section == 'Yes (Inside)'
+            .collection(section == 'Checked In'
                 ? 'yes_Closed'
-                : section == 'Yes (Outside)'
+                : section == 'Not Checked In(Outside)'
                     ? 'no_Closed'
                     : 'no_option_selected_Closed')
             .where('userEmail', isEqualTo: email)
             .snapshots(),
       );
-
       // Fetch and process records
       List<Map<String, dynamic>> records =
           (await CombineLatestStream.list(streams).first)
@@ -301,12 +361,15 @@ class _HomePageState extends State<HomePage> {
                     data['date'] = DateFormat('dd-MM-yyyy').format(dateTime);
                     data['time'] = DateFormat('HH:mm').format(dateTime);
                     data['dayOfWeek'] = DateFormat('EEEE').format(dateTime);
-                    data.remove('userName');
-                    data.remove('userEmail');
+                    data.remove('timestamp'); // Remove timestamp field
                     return data;
-                  }).toList())
+                  }))
               .toList();
 
+      // Update state
+      setState(() {
+        this.records = records;
+      });
       return records;
     } catch (e) {
       print('Error fetching records: $e');
@@ -314,13 +377,69 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  //     // Fetch and process records
+  //     List<Map<String, dynamic>> records =
+  //         (await CombineLatestStream.list(streams).first)
+  //             .expand((snapshot) => snapshot.docs.map((doc) {
+  //                   final data = doc.data();
+  //                   Timestamp timestamp = data['timestamp'] as Timestamp;
+  //                   DateTime dateTime = timestamp.toDate();
+  //                   data['date'] = DateFormat('dd-MM-yyyy').format(dateTime);
+  //                   data['time'] = DateFormat('HH:mm').format(dateTime);
+  //                   data['dayOfWeek'] = DateFormat('EEEE').format(dateTime);
+  //                   data.remove('userName');
+  //                   data.remove('userEmail');
+  //                   return data;
+  //                 }).toList())
+  //             .toList();
+  //
+  //     return records;
+  //   } catch (e) {
+  //     print('Error fetching records: $e');
+  //     return [];
+  //   }
+  // }
+
+  // void _onSectionTapped(String section) async {
+  //   List<Map<String, dynamic>> records = await _fetchRecords(section);
+  //   Navigator.push(
+  //     context,
+  //     MaterialPageRoute(
+  //       builder: (context) => RecordsPage(section: section, records: records),
+  //     ),
+  //   );
+  // }
   void _onSectionTapped(String section) async {
     List<Map<String, dynamic>> records = await _fetchRecords(section);
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => RecordsPage(section: section, records: records),
-      ),
+
+    // Show records in an alert dialog
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Records for $section'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: records
+                  .map(
+                    (record) => ListTile(
+                      title: Text('${record['date']} ${record['time']}'),
+                      subtitle: Text('${record['action']}'),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
     );
   }
 
